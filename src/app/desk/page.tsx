@@ -42,12 +42,10 @@ export default function DeskPage() {
   return (
     <div className="flex flex-col">
       <div className="border-b border-line px-4 py-3">
-        <h1 className="mt-1 font-cond text-2xl tracking-wide text-ink">
-          Desk
-        </h1>
+        <h1 className="exq-display mt-1 text-3xl text-ink">Desk</h1>
         <p className="mt-1 max-w-3xl text-[13px] leading-5 text-muted">
           Add a name when you hear it. Take it off the board when it is dead.
-          Write the call. Dates and sales live here so they do not rot in a
+          Write the take. Dates and sales live here so they do not rot in a
           build. This phone is the working copy. Export JSON and push to GitHub
           to update other installs.
         </p>
@@ -315,12 +313,12 @@ function NamesTab({
               />
             </label>
             <label className="block">
-              <span className="kicker">Desk call</span>
+              <span className="kicker">Your take</span>
               <textarea
                 value={desk.stamps[current.slug] ?? ""}
                 onChange={(e) => desk.setStamp(current.slug, e.target.value)}
                 rows={2}
-                placeholder="Write the call — why this pair."
+                placeholder="Write the take — why this pair."
                 className="mt-1 w-full border border-line bg-bg px-2 py-1.5 text-[13px] text-ink"
               />
             </label>

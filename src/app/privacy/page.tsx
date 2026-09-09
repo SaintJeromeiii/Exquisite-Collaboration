@@ -2,9 +2,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-2xl flex-1 overflow-auto px-4 py-6">
       <div className="kicker">Legal</div>
-      <h1 className="mt-1 font-cond text-3xl tracking-wide text-gold-2">
-        Privacy
-      </h1>
+      <h1 className="exq-display mt-1 text-4xl text-gold-2">Privacy</h1>
       <p className="mt-3 text-[13px] leading-6 text-muted">
         EXQ is a collab desk. It does not sell shoes, create accounts, or
         require a login.
@@ -13,10 +11,10 @@ export default function PrivacyPage() {
         What stays on your device
       </h2>
       <p className="mt-2 text-[13px] leading-6 text-muted">
-        Watching and calls are stored in your browser or app storage on this
-        device only. That book is not sent to a server. The heads-up when you
-        open EXQ stays on this device. If you turn on the optional day-before
-        phone ping, that is scheduled here only.
+        Watching, takes, your size, and city are stored in your browser or app
+        storage on this device only. That book is not sent to a server. The
+        heads-up when you open EXQ stays on this device. If you turn on the
+        optional day-before phone ping, that is scheduled here only.
       </p>
       <h2 className="mt-6 font-mono text-[11px] tracking-[0.16em] text-gold uppercase">
         What we do not collect

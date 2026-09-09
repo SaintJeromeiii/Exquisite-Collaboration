@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { DropEvent } from "@/data/market";
+import type { Collab, DropEvent } from "@/data/market";
 import { collabHref } from "@/lib/collab-path";
-import { formatDay, windowStatusLabel } from "@/lib/copy";
+import { formatDay, sizeVsMine, windowStatusLabel } from "@/lib/copy";
 import { useDesk } from "@/lib/desk-book";
+import { useDeskPrefs } from "@/lib/desk-prefs-context";
 import {
   disableReminders,
   enableReminders,
@@ -33,6 +34,7 @@ const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function DropCalendar() {
   const { calendar, listed, ready } = useDesk();
+  const { size } = useDeskPrefs();
   const [today, setToday] = useState("");
   const [cursor, setCursor] = useState({ year: 0, month: 0 });
   const [selected, setSelected] = useState("");
@@ -210,10 +212,21 @@ export function DropCalendar() {
         title={selected === today ? "Today" : formatDay(selected)}
         rows={selectedRows}
         listed={listed}
+        mySize={size}
         empty="Nothing on this day."
       />
-      <Section title="Coming up this month" rows={restUpcoming} listed={listed} />
-      <Section title="Already happened" rows={restDone} listed={listed} />
+      <Section
+        title="Coming up this month"
+        rows={restUpcoming}
+        listed={listed}
+        mySize={size}
+      />
+      <Section
+        title="Already happened"
+        rows={restDone}
+        listed={listed}
+        mySize={size}
+      />
     </div>
   );
 }
@@ -222,11 +235,13 @@ function Section({
   title,
   rows,
   listed,
+  mySize,
   empty = "Nothing here yet.",
 }: {
   title: string;
   rows: DropEvent[];
-  listed: { ticker: string; slug: string; name: string }[];
+  listed: Collab[];
+  mySize: string;
   empty?: string;
 }) {
   const hideEmptyBucket =
@@ -244,6 +259,7 @@ function Section({
         <ul className="divide-y divide-line">
           {rows.map((ev) => {
             const match = listed.find((c) => c.ticker === ev.ticker);
+            const sizeLine = match && mySize ? sizeVsMine(match.peakSize, mySize) : null;
             const inner = (
               <>
                 <div className="flex items-baseline justify-between gap-3">
@@ -259,6 +275,17 @@ function Section({
                   <div className="mt-0.5 text-[12px] text-muted">{ev.name}</div>
                 ) : null}
                 <div className="mt-0.5 text-[12px] text-dim">{ev.channel}</div>
+                {sizeLine ? (
+                  <div
+                    className={`mt-0.5 text-[12px] ${
+                      sizeLine.startsWith("Hottest size is yours")
+                        ? "text-gold"
+                        : "text-dim"
+                    }`}
+                  >
+                    {sizeLine}
+                  </div>
+                ) : null}
               </>
             );
             return (

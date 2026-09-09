@@ -21,12 +21,12 @@ export function CollabDeskBar({
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-[12px] text-dim">{seatLabel[seat]}</span>
         {watching ? <span className="text-[12px] text-gold">Watching</span> : null}
-        {stamped ? <span className="text-[12px] text-up">Your call</span> : null}
+        {stamped ? <span className="text-[12px] text-up">Your take</span> : null}
         <DeskActions slug={slug} />
       </div>
       {stamped ? (
         <label className="block">
-          <span className="text-[12px] text-muted">The call</span>
+          <span className="text-[12px] text-muted">The take</span>
           <textarea
             value={note}
             onChange={(e) => setStamp(slug, e.target.value)}

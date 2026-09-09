@@ -6,14 +6,16 @@ import { DeskActions } from "@/components/DeskActions";
 import { LookThumb } from "@/components/LookThumb";
 import { premium, seatLabel, type CollabSeat } from "@/data/market";
 import { collabHref } from "@/lib/collab-path";
-import { collabStatusLabel, vsRetailLine } from "@/lib/copy";
+import { collabStatusLabel, sizeVsMine, vsRetailLine } from "@/lib/copy";
 import { useDesk } from "@/lib/desk-book";
+import { useDeskPrefs } from "@/lib/desk-prefs-context";
 import { clsx } from "@/lib/format";
 
 type BoardFilter = "all" | "followed" | "endorsed" | CollabSeat;
 
 export function Watchlist() {
   const { followed, endorsed, listed, stamps } = useDesk();
+  const { size } = useDeskPrefs();
   const [filter, setFilter] = useState<BoardFilter>("all");
   const seats = (
     ["celebrity", "athlete", "boutique", "designer", "retailer", "brand"] as CollabSeat[]
@@ -38,7 +40,7 @@ export function Watchlist() {
   const chips: { id: BoardFilter; label: string }[] = [
     { id: "all", label: "All" },
     { id: "followed", label: "Watching" },
-    { id: "endorsed", label: "Your calls" },
+    { id: "endorsed", label: "Your takes" },
     ...seats.map((seat) => ({ id: seat, label: seatLabel[seat] })),
   ];
 
@@ -63,7 +65,8 @@ export function Watchlist() {
       </div>
       <ul className="divide-y divide-line">
         {rows.map((c) => {
-          const call = stamps[c.slug];
+          const take = stamps[c.slug];
+          const sizeLine = sizeVsMine(c.peakSize, size);
           return (
             <li key={c.slug} className="flex gap-3 px-3 py-3 hover:bg-panel-2">
               <Link href={collabHref(c.slug)} className="flex min-w-0 flex-1 gap-3 no-underline">
@@ -78,8 +81,19 @@ export function Watchlist() {
                   <p className={`mt-1.5 text-[13px] tabular ${c.last ? "text-ink" : "text-dim"}`}>
                     {vsRetailLine(c)}
                   </p>
-                  {endorsed.has(c.slug) && call ? (
-                    <p className="mt-1.5 text-[13px] leading-5 text-gold-2">{call}</p>
+                  {sizeLine ? (
+                    <p
+                      className={`mt-1 text-[12px] ${
+                        sizeLine.startsWith("Hottest size is yours")
+                          ? "text-gold"
+                          : "text-dim"
+                      }`}
+                    >
+                      {sizeLine}
+                    </p>
+                  ) : null}
+                  {endorsed.has(c.slug) && take ? (
+                    <p className="mt-1.5 text-[13px] leading-5 text-gold-2">{take}</p>
                   ) : null}
                 </div>
               </Link>

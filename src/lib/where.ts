@@ -8,10 +8,13 @@ export type DoorGuess = {
   line: string;
 };
 
+export type WhereCity = "nyc" | "london" | "tokyo";
+
 export type WhereGuess = {
   how: string;
   doors: DoorGuess[];
   follow: string[];
+  cityLine?: string;
   next?: { name: string; date: string; status: DropEvent["status"] };
 };
 
@@ -519,32 +522,77 @@ function doorFromChannel(raw: string): DoorGuess {
   };
 }
 
-export function whereFor(c: Collab, calendar: DropEvent[] = []): WhereGuess {
+const cityHint: Record<WhereCity, { lift: RegExp; sink: RegExp; line: string }> = {
+  nyc: {
+    lift: /kith us|aimé|ald|union|griselda|bodega|concepts|new balance|\bnb\b|amm|a ma/i,
+    sink: /tokyo|jp\b|london|amsterdam|\buk\b|\beu\b/i,
+    line: "From NYC: local shops and US sites first. EU leftover windows are a tell, not your door.",
+  },
+  london: {
+    lift: /palace|kith eu|cortiez|dover|dsm|nike uk|london|patta/i,
+    sink: /tokyo|jp\b|snkrs jp|kith us/i,
+    line: "From London: UK shop and site first. US SNKRS is usually late.",
+  },
+  tokyo: {
+    lift: /atmos|tokyo|snkrs jp|dover|dsm|jjjjound/i,
+    sink: /us snkrs|nike uk|kith us/i,
+    line: "From Tokyo: JP shop and JP app first. US SNKRS is usually not the door.",
+  },
+};
+
+function cityScore(city: WhereCity, door: DoorGuess) {
+  const n = `${door.name} ${door.line}`;
+  const hint = cityHint[city];
+  if (hint.lift.test(n)) return 2;
+  if (hint.sink.test(n)) return -1;
+  return 0;
+}
+
+export function whereFor(
+  c: Collab,
+  calendar: DropEvent[] = [],
+  city: WhereCity | "" = "",
+): WhereGuess {
   const next = calendar
     .filter((ev) => ev.ticker === c.ticker && ev.status !== "closed")
     .slice()
     .sort((a, b) => a.date.localeCompare(b.date))[0];
 
   const seeded = seed[c.slug];
-  if (seeded) {
-    return {
-      ...seeded,
-      next: next
-        ? { name: next.channel, date: next.date, status: next.status }
-        : undefined,
-    };
-  }
+  const base: WhereGuess = seeded
+    ? {
+        ...seeded,
+        next: next
+          ? { name: next.channel, date: next.date, status: next.status }
+          : undefined,
+      }
+    : (() => {
+        const doors = (c.channels.length ? c.channels : ["Desk"]).map(
+          doorFromChannel,
+        );
+        const inStore = doors.some(
+          (d) => d.access === "in-store" || d.access === "both",
+        );
+        return {
+          how: inStore
+            ? "Desk guess from the doors on file. Some of these only hit in-store. Follow the accounts — the time usually posts there first."
+            : "Desk guess from the doors on file. Online does not mean in your size. Follow the accounts for the real time.",
+          doors,
+          follow: doors.map((d) => d.name).slice(0, 4),
+          next: next
+            ? { name: next.channel, date: next.date, status: next.status }
+            : undefined,
+        };
+      })();
 
-  const doors = (c.channels.length ? c.channels : ["Desk"]).map(doorFromChannel);
-  const inStore = doors.some((d) => d.access === "in-store" || d.access === "both");
+  if (!city) return base;
+
+  const hint = cityHint[city];
   return {
-    how: inStore
-      ? "Desk guess from the doors on file. Some of these only hit in-store. Follow the accounts — the time usually posts there first."
-      : "Desk guess from the doors on file. Online does not mean in your size. Follow the accounts for the real time.",
-    doors,
-    follow: doors.map((d) => d.name).slice(0, 4),
-    next: next
-      ? { name: next.channel, date: next.date, status: next.status }
-      : undefined,
+    ...base,
+    cityLine: hint.line,
+    doors: [...base.doors].sort(
+      (a, b) => cityScore(city, b) - cityScore(city, a),
+    ),
   };
 }

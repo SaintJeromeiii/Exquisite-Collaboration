@@ -3,6 +3,7 @@
 import { Panel } from "@/components/Panel";
 import type { Collab, DropEvent } from "@/data/market";
 import { formatDay, windowStatusLabel } from "@/lib/copy";
+import { useDeskPrefs } from "@/lib/desk-prefs-context";
 import { accessLabel, accessTone, whereFor } from "@/lib/where";
 
 export function WhereCard({
@@ -12,7 +13,8 @@ export function WhereCard({
   collab: Collab;
   calendar: DropEvent[];
 }) {
-  const guess = whereFor(collab, calendar);
+  const { city, size } = useDeskPrefs();
+  const guess = whereFor(collab, calendar, city);
 
   return (
     <Panel
@@ -23,6 +25,15 @@ export function WhereCard({
       fill={false}
     >
       <p className="text-[13px] leading-5 text-muted">{guess.how}</p>
+      {guess.cityLine ? (
+        <p className="mt-2 text-[13px] leading-5 text-ink">{guess.cityLine}</p>
+      ) : null}
+      {size ? (
+        <p className="mt-2 text-[12px] leading-5 text-dim">
+          You wear US {size}. Hottest on this name is US {collab.peakSize}
+          {collab.peakSize === size ? " — that's you." : "."}
+        </p>
+      ) : null}
       <p className="mt-2 text-[12px] leading-5 text-dim">
         Not a store. Not live stock. If a pair is exclusive, the shop is the
         door — you cannot check out from here.

@@ -19,6 +19,7 @@ const condensed = Barlow_Condensed({
   variable: "--font-condensed",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {

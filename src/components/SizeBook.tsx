@@ -1,7 +1,13 @@
 import type { SizeLevel } from "@/data/market";
 import { clsx, usd } from "@/lib/format";
 
-export function SizeBook({ levels }: { levels: SizeLevel[] }) {
+export function SizeBook({
+  levels,
+  mySize = "",
+}: {
+  levels: SizeLevel[];
+  mySize?: string;
+}) {
   const maxVol = Math.max(...levels.map((l) => l.volume), 1);
 
   return (
@@ -19,12 +25,19 @@ export function SizeBook({ levels }: { levels: SizeLevel[] }) {
           {levels.map((l) => (
             <tr
               key={l.size}
-              className={clsx("border-b border-line/70", l.peak && "bg-line/50")}
+              className={clsx(
+                "border-b border-line/70",
+                l.peak && "bg-line/50",
+                mySize && l.size === mySize && !l.peak && "bg-gold/10",
+              )}
             >
               <td className="px-3 py-1.5 text-[13px]">
                 {l.size}
                 {l.peak ? (
                   <span className="ml-2 text-[11px] text-gold">hottest</span>
+                ) : null}
+                {mySize && l.size === mySize ? (
+                  <span className="ml-2 text-[11px] text-gold-2">yours</span>
                 ) : null}
               </td>
               <td className="px-3 py-1.5 text-right text-[13px] text-up tabular">

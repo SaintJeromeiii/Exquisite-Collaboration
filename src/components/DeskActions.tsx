@@ -51,9 +51,9 @@ export function DeskActions({
             ? "border-up bg-up/15 text-up"
             : "border-line text-dim hover:border-line-2 hover:text-muted",
         )}
-        title={stamped ? "Remove your call" : "Put a call on this collab"}
+        title={stamped ? "Remove your take" : "Put a take on this collab"}
       >
-        {stamped ? "Called" : "Call"}
+        {stamped ? "Taken" : "Take"}
       </button>
     </div>
   );

@@ -6,16 +6,19 @@ import { LookPane } from "@/components/LookPane";
 import { LookThumb } from "@/components/LookThumb";
 import { Panel } from "@/components/Panel";
 import { SizeBook } from "@/components/SizeBook";
+import { ShareTake } from "@/components/ShareTake";
 import { WhereCard } from "@/components/WhereCard";
 import { premium, type Collab } from "@/data/market";
 import { collabHref } from "@/lib/collab-path";
-import { collabStatusLabel, formatDay, vsRetailShort } from "@/lib/copy";
+import { collabStatusLabel, formatDay, hottestSizeNote, vsRetailShort } from "@/lib/copy";
 import { useDesk } from "@/lib/desk-book";
+import { useDeskPrefs } from "@/lib/desk-prefs-context";
 import { collabLooks } from "@/lib/looks";
 import { usd } from "@/lib/format";
 
 export function CollabDossier({ slug }: { slug: string }) {
   const { get, listed, ready, endorsed, stamps, calendar } = useDesk();
+  const { size } = useDeskPrefs();
   const c = get(slug);
   if (!ready && !c) {
     return <p className="p-4 text-[13px] text-dim">Loading…</p>;
@@ -24,14 +27,14 @@ export function CollabDossier({ slug }: { slug: string }) {
     return (
       <div className="px-4 py-8">
         <p className="text-[13px] text-muted">
-          This collab is not on the board. Add it from Desk.
+          This collab is not on the board.
         </p>
       </div>
     );
   }
 
   const prem = premium(c);
-  const call = stamps[c.slug];
+  const take = stamps[c.slug];
   const samePartner = listed.filter((x) => x.partner === c.partner && x.slug !== c.slug);
   const related = samePartner.length
     ? samePartner
@@ -45,22 +48,25 @@ export function CollabDossier({ slug }: { slug: string }) {
           {collabStatusLabel[c.status]}
           {c.dropDate ? ` · dropped ${formatDay(c.dropDate)}` : ""}
         </p>
-        <h1 className="mt-1 font-cond text-2xl tracking-wide text-ink">{c.name}</h1>
+        <h1 className="exq-display mt-1 text-3xl text-ink">{c.name}</h1>
         <p className="mt-1 text-[13px] text-muted">{c.colorway}</p>
       </div>
 
       <LookPane ticker={c.ticker} colorway={c.colorway} looks={collabLooks(c.slug)} />
 
       <div className="border-b border-line px-4 py-3">
-        {endorsed.has(c.slug) && call ? (
-          <p className="text-[16px] leading-6 text-gold-2">{call}</p>
+        {endorsed.has(c.slug) && take ? (
+          <p className="text-[16px] leading-6 text-gold-2">{take}</p>
         ) : endorsed.has(c.slug) ? (
-          <p className="text-[13px] text-muted">Call is on. Write why below.</p>
+          <p className="text-[13px] text-muted">Take is on. Write why below.</p>
         ) : (
           <p className="text-[13px] text-muted">
-            Watch to save it. Call when you have a reason.
+            Watch to save it. Take when you have a reason.
           </p>
         )}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <ShareTake collab={c} take={take ?? ""} calendar={calendar} />
+        </div>
         <CollabDeskBar slug={c.slug} seat={c.seat} />
       </div>
 
@@ -71,11 +77,7 @@ export function CollabDossier({ slug }: { slug: string }) {
         <Stat
           label="Hottest size"
           value={`US ${c.peakSize}`}
-          note={
-            c.sizePremiumPct
-              ? `${c.sizePremiumPct.toFixed(0)}% more than other sizes`
-              : undefined
-          }
+          note={hottestSizeNote(c, size)}
         />
       </div>
 
@@ -89,7 +91,7 @@ export function CollabDossier({ slug }: { slug: string }) {
         bodyClassName="max-h-72 overflow-auto lg:max-h-none"
         fill={false}
       >
-        <SizeBook levels={c.sizes} />
+        <SizeBook levels={c.sizes} mySize={size} />
       </Panel>
 
       <Panel

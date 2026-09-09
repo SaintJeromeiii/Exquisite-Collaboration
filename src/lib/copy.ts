@@ -44,3 +44,20 @@ export function vsRetailShort(c: Collab) {
   if (p < -0.5) return `${Math.round(Math.abs(p))}% under retail`;
   return "About retail";
 }
+
+export function hottestSizeNote(c: Collab, mySize: string) {
+  const prem = c.sizePremiumPct
+    ? `${c.sizePremiumPct.toFixed(0)}% more than other sizes`
+    : "";
+  if (!mySize) return prem || undefined;
+  const mine = c.peakSize.replace(/^US\s+/i, "").trim() === mySize;
+  if (mine) return prem ? `${prem} · that's your size` : "That's your size";
+  return prem ? `${prem} · you wear ${mySize}` : `You wear ${mySize}`;
+}
+
+export function sizeVsMine(peakSize: string, mySize: string) {
+  if (!mySize) return null;
+  const peak = peakSize.replace(/^US\s+/i, "").trim();
+  if (peak === mySize) return `Hottest size is yours · US ${mySize}`;
+  return `Hottest US ${peak} · you wear ${mySize}`;
+}

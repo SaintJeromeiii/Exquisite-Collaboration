@@ -97,7 +97,7 @@ export function OpenHeadsUp() {
           </p>
           <h2
             id="exq-heads-title"
-            className="mt-1 font-cond text-2xl tracking-wide text-ink"
+            className="exq-display mt-1 text-3xl text-ink"
           >
             {title}
           </h2>
