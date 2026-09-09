@@ -1,38 +1,44 @@
-import { deskStats } from "@/data/market";
+"use client";
+
+import { indexSeries } from "@/data/market";
+import { deskKpis, useDesk } from "@/lib/desk-book";
 import { compactUsd, cnDelta, signedPct, signedUsd } from "@/lib/format";
 
-const items = [
-  {
-    kicker: "EXQCI",
-    label: "Collab composite",
-    value: deskStats.index.toLocaleString("en-US", { minimumFractionDigits: 1 }),
-    delta: `${signedUsd(deskStats.indexChange)}  ${signedPct(deskStats.indexChangePct)}`,
-    n: deskStats.indexChangePct,
-  },
-  {
-    kicker: "PREM",
-    label: "Premium index",
-    value: `${deskStats.premiumIdx.toFixed(1)}%`,
-    delta: "Last − retail, equal weight",
-    n: 1,
-  },
-  {
-    kicker: "ADV",
-    label: "Tape volume",
-    value: compactUsd(deskStats.adv),
-    delta: "24h estimated notional",
-    n: 0,
-  },
-  {
-    kicker: "OPEN",
-    label: "Live windows",
-    value: String(deskStats.openDrops),
-    delta: `${deskStats.names} names on the board`,
-    n: 0,
-  },
-];
-
 export function KpiStrip() {
+  const { listed, calendar } = useDesk();
+  const live = deskKpis(listed, calendar);
+  const last = indexSeries[indexSeries.length - 1]?.c ?? 1846.2;
+  const items = [
+    {
+      kicker: "EXQCI",
+      label: "Collab composite",
+      value: last.toLocaleString("en-US", { minimumFractionDigits: 1 }),
+      delta: `${signedUsd(26.4)}  ${signedPct(1.45)}`,
+      n: 1.45,
+    },
+    {
+      kicker: "PREM",
+      label: "Premium index",
+      value: `${live.premiumIdx.toFixed(1)}%`,
+      delta: "Last − retail, equal weight",
+      n: 1,
+    },
+    {
+      kicker: "ADV",
+      label: "Tape volume",
+      value: compactUsd(live.adv),
+      delta: "24h estimated notional",
+      n: 0,
+    },
+    {
+      kicker: "OPEN",
+      label: "Live windows",
+      value: String(live.openDrops),
+      delta: `${live.names} names on the board`,
+      n: 0,
+    },
+  ];
+
   return (
     <div className="grid grid-cols-2 border-b border-line lg:grid-cols-4">
       {items.map((item) => (

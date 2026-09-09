@@ -1,13 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import { collabs, prints } from "@/data/market";
+import { collabHref } from "@/lib/collab-path";
+import { useDesk } from "@/lib/desk-book";
 import { clsx, usd } from "@/lib/format";
 
-function hrefFor(ticker: string) {
-  return `/collabs/${collabs.find((c) => c.ticker === ticker)?.slug ?? ""}`;
-}
-
 export function TimeSales({ limit }: { limit?: number }) {
+  const { prints, listed } = useDesk();
   const rows = limit ? prints.slice(0, limit) : prints;
+
+  function hrefFor(ticker: string) {
+    const slug = listed.find((c) => c.ticker === ticker)?.slug;
+    return slug ? collabHref(slug) : "/desk/";
+  }
 
   return (
     <div className="overflow-x-auto">

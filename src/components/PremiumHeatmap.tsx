@@ -1,19 +1,20 @@
+"use client";
+
 import Link from "next/link";
-import {
-  brandsOnBoard,
-  collabs,
-  premium,
-  seatLabel,
-  seatsOnBoard,
-} from "@/data/market";
+import { premium, seatLabel, type CollabSeat } from "@/data/market";
+import { collabHref } from "@/lib/collab-path";
+import { useDesk } from "@/lib/desk-book";
 import { clsx } from "@/lib/format";
 
 export function PremiumHeatmap() {
-  const brands = brandsOnBoard();
-  const seats = seatsOnBoard();
+  const { listed } = useDesk();
+  const brands = Array.from(new Set(listed.map((c) => c.brand)));
+  const seats = (
+    ["celebrity", "athlete", "boutique", "designer", "retailer", "brand"] as CollabSeat[]
+  ).filter((seat) => listed.some((c) => c.seat === seat));
 
-  function cell(seat: (typeof seats)[number], brand: string) {
-    const names = collabs.filter((c) => c.seat === seat && c.brand === brand && c.last > 0);
+  function cell(seat: CollabSeat, brand: string) {
+    const names = listed.filter((c) => c.seat === seat && c.brand === brand && c.last > 0);
     if (!names.length) return null;
     const avg = names.reduce((sum, c) => sum + premium(c), 0) / names.length;
     const top = [...names].sort((a, b) => premium(b) - premium(a))[0];
@@ -58,7 +59,7 @@ export function PremiumHeatmap() {
                   <td key={brand} className="p-1">
                     {data ? (
                       <Link
-                        href={`/collabs/${data.top.slug}`}
+                        href={collabHref(data.top.slug)}
                         className={clsx(
                           "block px-2 py-2 text-center font-mono text-[11px] tabular no-underline",
                           tone(data.avg),
@@ -81,7 +82,7 @@ export function PremiumHeatmap() {
       </table>
       <p className="mt-2 font-mono text-[10px] tracking-[0.06em] text-dim">
         Cell = average last vs retail by seat. Click through to the richest name in
-        the cell. Source: EXQ desk · 09 Sep 2026
+        the cell. Source: live desk book.
       </p>
     </div>
   );

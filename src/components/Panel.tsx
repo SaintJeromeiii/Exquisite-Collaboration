@@ -5,6 +5,7 @@ export function Panel({
   children,
   className = "",
   bodyClassName = "",
+  fill = true,
 }: {
   title: string;
   kicker?: string;
@@ -12,6 +13,7 @@ export function Panel({
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  fill?: boolean;
 }) {
   return (
     <section className={`flex min-h-0 flex-col border border-line bg-panel ${className}`}>
@@ -26,9 +28,13 @@ export function Panel({
             {title}
           </h2>
         </div>
-        {action ? <div className="text-[10px] font-mono tracking-[0.12em] text-dim">{action}</div> : null}
+        {action ? (
+          <div className="text-[10px] font-mono tracking-[0.12em] text-dim">{action}</div>
+        ) : null}
       </header>
-      <div className={`min-h-0 flex-1 ${bodyClassName}`}>{children}</div>
+      <div className={`${fill ? "min-h-0 flex-1" : "shrink-0"} ${bodyClassName}`}>
+        {children}
+      </div>
     </section>
   );
 }

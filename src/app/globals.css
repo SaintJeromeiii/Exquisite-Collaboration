@@ -42,6 +42,7 @@
 html,
 body {
   height: 100%;
+  height: 100dvh;
   background: var(--bg);
   color: var(--text);
   overscroll-behavior: none;
@@ -92,6 +93,26 @@ body {
 
 .live-dot {
   animation: pulse-live 1.6s ease-in-out infinite;
+}
+
+.exq-footer {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px), var(--exq-sys-inset, 0px));
+}
+
+.exq-shell {
+  display: flex;
+  height: 100dvh;
+  max-height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.exq-main {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 ::-webkit-scrollbar {

@@ -22,9 +22,9 @@ const condensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "EXQ Desk — Exquisite Collab Terminal",
+  title: "EXQ — Collab desk",
   description:
-    "A Wall Street-style information desk for every sneaker collaboration — celebrity, boutique, designer, athlete, retailer, brand-on-brand. Follow, endorse, and quote the tape without buying a box.",
+    "A collab sneaker desk: what to watch, why it matters, when it drops. No store. No box.",
   applicationName: "EXQ Desk",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -45,9 +45,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${mono.variable} ${condensed.variable} h-full antialiased`}
+      className={`${sans.variable} ${mono.variable} ${condensed.variable} h-dvh overflow-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-bg text-ink">
+      <body className="h-dvh overflow-hidden bg-bg text-ink">
         <TerminalShell>{children}</TerminalShell>
       </body>
     </html>

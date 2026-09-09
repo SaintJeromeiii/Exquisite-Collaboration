@@ -113,7 +113,7 @@ function addDays(iso: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
-function seriesFrom(key: string, startDate: string, days: number, start: number, end: number) {
+export function seriesFrom(key: string, startDate: string, days: number, start: number, end: number) {
   const h = hash(key);
   const out: Ohlc[] = [];
   let close = start;
@@ -139,7 +139,7 @@ function seriesFrom(key: string, startDate: string, days: number, start: number,
   return out;
 }
 
-function sizeBook(peak: string, last: number, seed: string): SizeLevel[] {
+export function sizeBook(peak: string, last: number, seed: string): SizeLevel[] {
   const sizes = ["7", "7.5", "8", "8.5", "9", "9.5", "10", "10.5", "11", "11.5", "12", "13"];
   const h = hash(seed);
   const peakIndex = sizes.indexOf(peak);

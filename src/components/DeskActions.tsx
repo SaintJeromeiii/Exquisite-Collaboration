@@ -12,8 +12,8 @@ export function DeskActions({
 }) {
   const { ready, followed, endorsed, follow, unfollow, endorse, revoke } =
     useDeskBook();
-  const isFollowed = followed.has(slug);
-  const isEndorsed = endorsed.has(slug);
+  const watching = followed.has(slug);
+  const stamped = endorsed.has(slug);
 
   return (
     <div className={clsx("flex items-center gap-1", compact && "justify-end")}>
@@ -23,22 +23,18 @@ export function DeskActions({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (isFollowed) unfollow(slug);
+          if (watching) unfollow(slug);
           else follow(slug);
         }}
         className={clsx(
-          "border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.14em] uppercase",
-          isFollowed
+          "border px-1.5 py-0.5 text-[11px]",
+          watching
             ? "border-gold bg-gold/15 text-gold"
             : "border-line text-dim hover:border-line-2 hover:text-muted",
         )}
-        title={
-          isFollowed
-            ? "Remove from coverage"
-            : "Follow — add this collab to your desk coverage"
-        }
+        title={watching ? "Stop watching" : "Watch this collab"}
       >
-        Flw
+        {watching ? "Watching" : "Watch"}
       </button>
       <button
         type="button"
@@ -46,22 +42,18 @@ export function DeskActions({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (isEndorsed) revoke(slug);
+          if (stamped) revoke(slug);
           else endorse(slug);
         }}
         className={clsx(
-          "border px-1.5 py-0.5 font-mono text-[9px] tracking-[0.14em] uppercase",
-          isEndorsed
+          "border px-1.5 py-0.5 text-[11px]",
+          stamped
             ? "border-up bg-up/15 text-up"
             : "border-line text-dim hover:border-line-2 hover:text-muted",
         )}
-        title={
-          isEndorsed
-            ? "Revoke desk stamp"
-            : "Endorse — put your stamp on this collab"
-        }
+        title={stamped ? "Remove your call" : "Put a call on this collab"}
       >
-        End
+        {stamped ? "Called" : "Call"}
       </button>
     </div>
   );

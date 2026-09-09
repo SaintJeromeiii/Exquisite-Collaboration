@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Collab } from "@/data/market";
 import { premium } from "@/data/market";
+import { collabHref } from "@/lib/collab-path";
 import { cnDelta, signedPct, usd } from "@/lib/format";
 
 export function TickerTape({ names }: { names: Collab[] }) {
@@ -13,7 +14,7 @@ export function TickerTape({ names }: { names: Collab[] }) {
         {doubled.map((c, i) => (
           <Link
             key={`${c.ticker}-${i}`}
-            href={`/collabs/${c.slug}`}
+            href={collabHref(c.slug)}
             className="flex items-baseline gap-2 whitespace-nowrap font-mono text-[11px] no-underline"
           >
             <span className="font-cond text-[13px] tracking-wide text-gold-2">

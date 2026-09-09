@@ -6,23 +6,25 @@ export default function PrivacyPage() {
         Privacy
       </h1>
       <p className="mt-3 text-[13px] leading-6 text-muted">
-        EXQ Desk is an information terminal. It does not sell shoes, create
-        accounts, or require a login.
+        EXQ is a collab desk. It does not sell shoes, create accounts, or
+        require a login.
       </p>
       <h2 className="mt-6 font-mono text-[11px] tracking-[0.16em] text-gold uppercase">
         What stays on your device
       </h2>
       <p className="mt-2 text-[13px] leading-6 text-muted">
-        Follows and endorsements are stored in your browser or app storage on
-        this device only. That book is not sent to a server.
+        Watching and calls are stored in your browser or app storage on this
+        device only. That book is not sent to a server. The heads-up when you
+        open EXQ stays on this device. If you turn on the optional day-before
+        phone ping, that is scheduled here only.
       </p>
       <h2 className="mt-6 font-mono text-[11px] tracking-[0.16em] text-gold uppercase">
         What we do not collect
       </h2>
       <p className="mt-2 text-[13px] leading-6 text-muted">
         No analytics SDK, no advertising ID, no crash reporter, no location, no
-        contacts. Market figures in this version are desk estimates shipped
-        with the app.
+        contacts. Market figures and where-to-buy notes in this version are desk
+        estimates shipped with the app, not live store inventory.
       </p>
       <h2 className="mt-6 font-mono text-[11px] tracking-[0.16em] text-gold uppercase">
         Store listings

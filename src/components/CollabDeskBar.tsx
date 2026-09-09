@@ -1,9 +1,8 @@
 "use client";
 
 import { DeskActions } from "@/components/DeskActions";
-import { SeatBadge } from "@/components/SeatBadge";
 import { seatLabel, type CollabSeat } from "@/data/market";
-import { useDeskBook } from "@/lib/desk-book";
+import { useDesk } from "@/lib/desk-book";
 
 export function CollabDeskBar({
   slug,
@@ -12,29 +11,31 @@ export function CollabDeskBar({
   slug: string;
   seat: CollabSeat;
 }) {
-  const { endorsed, followed } = useDeskBook();
+  const { endorsed, followed, stamps, setStamp } = useDesk();
   const stamped = endorsed.has(slug);
-  const covering = followed.has(slug);
+  const watching = followed.has(slug);
+  const note = stamps[slug] ?? "";
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-3">
-      <div className="flex items-baseline gap-2">
-        <SeatBadge seat={seat} />
-        <span className="font-mono text-[10px] tracking-[0.12em] text-dim uppercase">
-          {seatLabel[seat]} seat
-        </span>
+    <div className="mt-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[12px] text-dim">{seatLabel[seat]}</span>
+        {watching ? <span className="text-[12px] text-gold">Watching</span> : null}
+        {stamped ? <span className="text-[12px] text-up">Your call</span> : null}
+        <DeskActions slug={slug} />
       </div>
-      {covering ? (
-        <span className="font-mono text-[10px] tracking-[0.14em] text-gold uppercase">
-          On coverage
-        </span>
-      ) : null}
       {stamped ? (
-        <span className="font-mono text-[10px] tracking-[0.14em] text-up uppercase">
-          Desk stamp
-        </span>
+        <label className="block">
+          <span className="text-[12px] text-muted">The call</span>
+          <textarea
+            value={note}
+            onChange={(e) => setStamp(slug, e.target.value)}
+            rows={2}
+            placeholder="Why this pair — size, channel, hold or fade."
+            className="mt-1 w-full resize-y border border-line bg-bg px-2 py-1.5 font-sans text-[13px] leading-5 text-ink outline-none focus:border-gold"
+          />
+        </label>
       ) : null}
-      <DeskActions slug={slug} />
     </div>
   );
 }

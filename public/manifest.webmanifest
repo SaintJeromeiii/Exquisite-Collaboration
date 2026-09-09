@@ -1,7 +1,7 @@
 {
   "name": "EXQ Desk",
   "short_name": "EXQ Desk",
-  "description": "Collab sneaker terminal — follow and endorse any collaboration.",
+  "description": "Collab sneaker desk — watch names and write the call.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#05070a",
