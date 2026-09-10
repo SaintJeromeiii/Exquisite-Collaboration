@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Panel } from "@/components/Panel";
+import { ShoeMark } from "@/components/ShoeMark";
 import { clsx } from "@/lib/format";
 import type { Look } from "@/lib/looks";
 
@@ -28,10 +29,13 @@ export function LookPane({
         bodyClassName="p-4"
         fill={false}
       >
-        <p className="text-[13px] text-dim">
-          Side and three-quarter stills go in public/looks when you have rights
-          to the pair.
-        </p>
+        <div className="flex items-center gap-3">
+          <ShoeMark ticker={ticker} className="h-16 w-24" />
+          <p className="text-[13px] leading-5 text-dim">
+            Desk still failed to load. The gold mark stands in so the board
+            stays even.
+          </p>
+        </div>
       </Panel>
     );
   }

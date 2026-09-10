@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ShoeMark } from "@/components/ShoeMark";
 import { collabHero } from "@/lib/looks";
 
 export function LookThumb({
@@ -13,7 +14,13 @@ export function LookThumb({
   className?: string;
 }) {
   const [ok, setOk] = useState(true);
-  if (!ok) return null;
+
+  useEffect(() => {
+    setOk(true);
+  }, [slug]);
+
+  if (!ok) return <ShoeMark ticker={ticker} className={className} />;
+
   return (
     <img
       src={collabHero(slug)}
