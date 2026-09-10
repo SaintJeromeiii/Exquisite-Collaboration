@@ -25,7 +25,7 @@ export function shareTakeText(
       : null,
     doors ? `Where: ${doors}` : null,
     guess.follow.length ? `Follow ${guess.follow.join(", ")}` : null,
-    "No store. Just the take. — EXQ",
+    "No store. Just the take. — Exquisite",
   ]
     .filter(Boolean)
     .join("\n");

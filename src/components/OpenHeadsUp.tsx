@@ -103,7 +103,7 @@ export function OpenHeadsUp() {
           </h2>
           <p className="mt-1 text-[13px] leading-5 text-muted">
             A window on the desk is close. No phone ping — just this, when you
-            open EXQ.
+            open Exquisite.
           </p>
         </div>
         <ul className="divide-y divide-line">

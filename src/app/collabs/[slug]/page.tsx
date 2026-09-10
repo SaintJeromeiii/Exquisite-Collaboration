@@ -13,9 +13,9 @@ export async function generateMetadata({
 }) {
   const { slug } = await params;
   const c = getCollab(slug);
-  if (!c) return { title: "Not on the board — EXQ" };
+  if (!c) return { title: "Not on the board — Exquisite" };
   return {
-    title: `${c.name} | EXQ`,
+    title: `${c.name} | Exquisite`,
     description: c.thesis,
   };
 }

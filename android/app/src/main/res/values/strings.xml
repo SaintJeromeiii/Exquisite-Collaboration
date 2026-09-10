@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">EXQ Desk</string>
-    <string name="title_activity_main">EXQ Desk</string>
+    <string name="app_name">Exquisite</string>
+    <string name="title_activity_main">Exquisite</string>
     <string name="package_name">com.exquisitecollab.desk</string>
     <string name="custom_url_scheme">com.exquisitecollab.desk</string>
 </resources>

@@ -60,8 +60,12 @@ function ExqMark() {
         if (openedDesk.current) e.preventDefault();
       }}
     >
-      <span className="exq-display text-xl text-gold">EXQ</span>
-      <span className="font-sans text-[13px] text-muted">Collab desk</span>
+      <span className="flex flex-col leading-none">
+        <span className="exq-wordmark text-[17px] text-gold">Exquisite</span>
+        <span className="exq-wordmark mt-0.5 text-[17px] text-gold">
+          Collaboration
+        </span>
+      </span>
     </Link>
   );
 }

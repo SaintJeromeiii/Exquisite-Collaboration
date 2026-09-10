@@ -4,7 +4,7 @@ export default function PrivacyPage() {
       <div className="kicker">Legal</div>
       <h1 className="exq-display mt-1 text-4xl text-gold-2">Privacy</h1>
       <p className="mt-3 text-[13px] leading-6 text-muted">
-        EXQ is a collab desk. It does not sell shoes, create accounts, or
+        Exquisite is a collab desk. It does not sell shoes, create accounts, or
         require a login.
       </p>
       <h2 className="mt-6 font-mono text-[11px] tracking-[0.16em] text-gold uppercase">
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       <p className="mt-2 text-[13px] leading-6 text-muted">
         Watching, takes, your size, and city are stored in your browser or app
         storage on this device only. That book is not sent to a server. The
-        heads-up when you open EXQ stays on this device. If you turn on the
+        heads-up when you open Exquisite stays on this device. If you turn on the
         optional day-before phone ping, that is scheduled here only.
       </p>
       <h2 className="mt-6 font-mono text-[11px] tracking-[0.16em] text-gold uppercase">
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         Store listings
       </h2>
       <p className="mt-2 text-[13px] leading-6 text-muted">
-        If you installed EXQ Desk from Google Play, app updates are delivered
+        If you installed Exquisite from Google Play, app updates are delivered
         by the Play Store. Uninstalling the app removes local coverage data.
       </p>
       <p className="mt-6 font-mono text-[11px] text-dim">

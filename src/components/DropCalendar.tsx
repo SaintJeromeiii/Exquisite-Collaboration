@@ -197,11 +197,11 @@ export function DropCalendar() {
           <p className="mt-2 text-[12px] leading-5 text-dim">
             {native
               ? "Optional. Most people skip this. If you want it, it pings at 9:00 the day before, on this phone only."
-              : "Optional. The usual heads-up is the card when you open EXQ. This extra ping only fires in the Android app."}
+              : "Optional. The usual heads-up is the card when you open Exquisite. This extra ping only fires in the Android app."}
           </p>
           {denied ? (
             <p className="mt-1 text-[12px] text-warn">
-              Notifications are off for EXQ. Turn them on in system settings if
+              Notifications are off for Exquisite. Turn them on in system settings if
               you want the ping.
             </p>
           ) : null}

@@ -23,14 +23,14 @@ const condensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "EXQ — Collab desk",
+  title: "Exquisite",
   description:
     "A collab sneaker desk: what to watch, why it matters, when it drops. No store. No box.",
-  applicationName: "EXQ Desk",
+  applicationName: "Exquisite",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "EXQ Desk",
+    title: "Exquisite",
     statusBarStyle: "black-translucent",
   },
 };

@@ -8,7 +8,7 @@ export default function WhenPage() {
         <h1 className="exq-display text-3xl text-ink">When</h1>
         <p className="mt-1 max-w-2xl text-[13px] leading-5 text-muted">
           Month grid of restocks, raffles, leftovers, done. Tap a day. When
-          something is close, EXQ tells you as you open the app — you do not
+          something is close, Exquisite tells you as you open the app — you do not
           have to allow another phone notification.
         </p>
         <PrefsBar />

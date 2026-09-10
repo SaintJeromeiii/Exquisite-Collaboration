@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "com.exquisitecollab.desk",
-  appName: "EXQ Desk",
+  appName: "Exquisite",
   webDir: "out",
   android: {
     allowMixedContent: false,
