@@ -8,6 +8,7 @@ export type NameDraft = {
   partner: string;
   brand: string;
   seat: CollabSeat;
+  dropDate: string;
 };
 
 export type CalDraft = {
@@ -29,13 +30,20 @@ function todayIso() {
 
 export function emptyDeskDrafts(): DeskDrafts {
   return {
-    name: { ticker: "", name: "", partner: "", brand: "", seat: "boutique" },
+    name: {
+      ticker: "",
+      name: "",
+      partner: "",
+      brand: "",
+      seat: "boutique",
+      dropDate: "",
+    },
     cal: {
       date: todayIso(),
       ticker: "",
       name: "",
       channel: "",
-      status: "raffle",
+      status: "priced",
     },
   };
 }

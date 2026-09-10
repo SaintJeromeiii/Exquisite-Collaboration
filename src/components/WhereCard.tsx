@@ -60,7 +60,7 @@ export function WhereCard({
       {guess.follow.length ? (
         <p className="mt-3 text-[12px] leading-5 text-muted">
           Follow {guess.follow.join(", ")}. The drop time usually hits their
-          social first.
+          social first. Desk dates on When are a call, not the shop clock.
         </p>
       ) : null}
     </Panel>

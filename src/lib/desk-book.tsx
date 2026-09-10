@@ -18,9 +18,12 @@ import {
   slugFromTicker,
   type CollabPatch,
   restoreWipedSeedCopy,
+  mergeRemoteCoverage,
+  remoteIsNewer,
   type DeskFile,
   type ExtraDraft,
 } from "@/lib/desk-file";
+import { isoDay, releaseWindowFor, upsertReleaseWindow } from "@/lib/desk-when";
 
 const KEY_V1 = "exq.desk.book.v1";
 const KEY = "exq.desk.book.v2";
@@ -44,11 +47,13 @@ type DeskApi = {
   revoke: (slug: string) => void;
   setStamp: (slug: string, note: string) => void;
   patch: (slug: string, patch: CollabPatch) => void;
+  setDropDate: (slug: string, date: string) => void;
   addName: (draft: Omit<ExtraDraft, "slug"> & { slug?: string }) => string | null;
   kill: (slug: string) => void;
   restore: (slug: string) => void;
   restoreSeedCopy: (slug: string) => void;
   addWindow: (ev: DropEvent) => void;
+  patchWindow: (index: number, patch: Partial<DropEvent>) => void;
   removeWindow: (index: number) => void;
   addPrint: (print: Print) => void;
   removePrint: (index: number) => void;
@@ -62,6 +67,31 @@ const DeskContext = createContext<DeskApi | null>(null);
 
 function touch(file: DeskFile): DeskFile {
   return { ...file, updatedAt: new Date().toISOString() };
+}
+
+function withCollabPatch(
+  current: DeskFile,
+  slug: string,
+  next: CollabPatch,
+): DeskFile {
+  const extraIndex = current.extras.findIndex((item) => item.slug === slug);
+  if (extraIndex >= 0) {
+    const extras = current.extras.slice();
+    extras[extraIndex] = {
+      ...extras[extraIndex],
+      ...next,
+      slug,
+      ticker: extras[extraIndex].ticker,
+    };
+    return { ...current, extras };
+  }
+  return {
+    ...current,
+    patches: {
+      ...current.patches,
+      [slug]: { ...current.patches[slug], ...next },
+    },
+  };
 }
 
 function loadStored(): { file: DeskFile; hadLocal: boolean } {
@@ -97,7 +127,12 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       const remote = await fetchRemoteDeskFile();
       if (!remote) return;
       setRemoteAt(remote.updatedAt);
-      if (!hadLocal) setFile(remote);
+      setFile((current) => {
+        const next = restoreWipedSeedCopy(remote);
+        if (!hadLocal) return mergeRemoteCoverage(current, next);
+        if (!remoteIsNewer(current, next)) return current;
+        return mergeRemoteCoverage(current, next);
+      });
     })();
   }, []);
 
@@ -116,16 +151,20 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
     setFile((current) => touch(fn(current)));
   }, []);
 
+  const mutatePersonal = useCallback((fn: (current: DeskFile) => DeskFile) => {
+    setFile(fn);
+  }, []);
+
   const follow = useCallback((slug: string) => {
-    mutate((current) =>
+    mutatePersonal((current) =>
       current.followed.includes(slug)
         ? current
         : { ...current, followed: [...current.followed, slug] },
     );
-  }, [mutate]);
+  }, [mutatePersonal]);
 
   const unfollow = useCallback((slug: string) => {
-    mutate((current) => ({
+    mutatePersonal((current) => ({
       ...current,
       followed: current.followed.filter((item) => item !== slug),
       endorsed: current.endorsed.filter((item) => item !== slug),
@@ -133,10 +172,10 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
         Object.entries(current.stamps).filter(([key]) => key !== slug),
       ),
     }));
-  }, [mutate]);
+  }, [mutatePersonal]);
 
   const endorse = useCallback((slug: string) => {
-    mutate((current) => ({
+    mutatePersonal((current) => ({
       ...current,
       followed: current.followed.includes(slug)
         ? current.followed
@@ -145,20 +184,20 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
         ? current.endorsed
         : [...current.endorsed, slug],
     }));
-  }, [mutate]);
+  }, [mutatePersonal]);
 
   const revoke = useCallback((slug: string) => {
-    mutate((current) => ({
+    mutatePersonal((current) => ({
       ...current,
       endorsed: current.endorsed.filter((item) => item !== slug),
       stamps: Object.fromEntries(
         Object.entries(current.stamps).filter(([key]) => key !== slug),
       ),
     }));
-  }, [mutate]);
+  }, [mutatePersonal]);
 
   const setStamp = useCallback((slug: string, note: string) => {
-    mutate((current) => ({
+    mutatePersonal((current) => ({
       ...current,
       followed: current.followed.includes(slug)
         ? current.followed
@@ -168,22 +207,26 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
         : [...current.endorsed, slug],
       stamps: { ...current.stamps, [slug]: note },
     }));
-  }, [mutate]);
+  }, [mutatePersonal]);
 
   const patch = useCallback((slug: string, next: CollabPatch) => {
+    mutate((current) => withCollabPatch(current, slug, next));
+  }, [mutate]);
+
+  const setDropDate = useCallback((slug: string, date: string) => {
     mutate((current) => {
-      const extraIndex = current.extras.findIndex((item) => item.slug === slug);
-      if (extraIndex >= 0) {
-        const extras = current.extras.slice();
-        extras[extraIndex] = { ...extras[extraIndex], ...next, slug, ticker: extras[extraIndex].ticker };
-        return { ...current, extras };
-      }
+      const day = isoDay(date);
+      const before = resolveDesk(current).all.find((c) => c.slug === slug);
+      const patched = withCollabPatch(current, slug, { dropDate: day });
+      if (!day || !before) return patched;
       return {
-        ...current,
-        patches: {
-          ...current.patches,
-          [slug]: { ...current.patches[slug], ...next },
-        },
+        ...patched,
+        calendar: upsertReleaseWindow(
+          current.calendar ?? resolveDesk(current).calendar,
+          before.ticker,
+          before.dropDate,
+          releaseWindowFor(before, day),
+        ),
       };
     });
   }, [mutate]);
@@ -204,14 +247,24 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
         ...draft,
         slug,
         ticker,
+        dropDate: isoDay(draft.dropDate),
         channels: draft.channels.length ? draft.channels : ["Desk"],
       };
+      const day = extra.dropDate;
       return {
         ...current,
         extras: [...current.extras, extra],
         followed: current.followed.includes(slug)
           ? current.followed
           : [...current.followed, slug],
+        calendar: day
+          ? upsertReleaseWindow(
+              current.calendar ?? resolveDesk(current).calendar,
+              ticker,
+              undefined,
+              releaseWindowFor(extra, day),
+            )
+          : current.calendar,
       };
     });
     return slug;
@@ -251,6 +304,15 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [mutate, resolved.calendar]);
 
+  const patchWindow = useCallback((index: number, patch: Partial<DropEvent>) => {
+    mutate((current) => {
+      const rows = (current.calendar ?? resolved.calendar).slice();
+      if (!rows[index]) return current;
+      rows[index] = { ...rows[index], ...patch };
+      return { ...current, calendar: rows };
+    });
+  }, [mutate, resolved.calendar]);
+
   const removeWindow = useCallback((index: number) => {
     mutate((current) => {
       const rows = (current.calendar ?? resolved.calendar).slice();
@@ -278,14 +340,14 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
     const remote = await fetchRemoteDeskFile();
     if (!remote) return false;
     setRemoteAt(remote.updatedAt);
-    setFile(touch(remote));
+    setFile((current) => mergeRemoteCoverage(current, restoreWipedSeedCopy(remote)));
     return true;
   }, []);
 
   const importFile = useCallback((raw: unknown) => {
     const parsed = parseDeskFile(raw);
     if (!parsed) return false;
-    setFile(touch(parsed));
+    setFile((current) => mergeRemoteCoverage(current, parsed));
     return true;
   }, []);
 
@@ -320,11 +382,13 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       revoke,
       setStamp,
       patch,
+      setDropDate,
       addName,
       kill,
       restore,
       restoreSeedCopy,
       addWindow,
+      patchWindow,
       removeWindow,
       addPrint,
       removePrint,
@@ -345,6 +409,7 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       importFile,
       kill,
       patch,
+      patchWindow,
       pullRemote,
       ready,
       remoteAt,
@@ -355,6 +420,7 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       restoreSeedCopy,
       revoke,
       save,
+      setDropDate,
       setStamp,
       unfollow,
     ],

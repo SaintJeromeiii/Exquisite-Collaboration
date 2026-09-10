@@ -242,3 +242,21 @@ export async function fetchRemoteDeskFile(): Promise<DeskFile | null> {
   }
   return null;
 }
+
+/** Watchlist and takes stay on the phone. Coverage comes from the published book. */
+export function mergeRemoteCoverage(local: DeskFile, remote: DeskFile): DeskFile {
+  return {
+    ...remote,
+    followed: local.followed,
+    endorsed: local.endorsed,
+    stamps: local.stamps,
+  };
+}
+
+export function remoteIsNewer(local: DeskFile, remote: DeskFile) {
+  const localAt = Date.parse(local.updatedAt);
+  const remoteAt = Date.parse(remote.updatedAt);
+  if (Number.isNaN(remoteAt)) return false;
+  if (Number.isNaN(localAt)) return true;
+  return remoteAt > localAt;
+}

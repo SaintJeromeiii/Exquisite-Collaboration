@@ -11,6 +11,7 @@ import {
 } from "@/data/market";
 import { collabHref } from "@/lib/collab-path";
 import { useDesk } from "@/lib/desk-book";
+import { collabStatusLabel, formatDay, windowStatusLabel } from "@/lib/copy";
 import { seedSlugs } from "@/lib/desk-file";
 import {
   emptyDeskDrafts,
@@ -20,7 +21,18 @@ import {
   type DeskDrafts,
   type NameDraft,
 } from "@/lib/desk-draft";
+import {
+  hasWindowOnDay,
+  isoDay,
+  windowsForTicker,
+  windowStatusForDate,
+} from "@/lib/desk-when";
 import { clsx } from "@/lib/format";
+import {
+  datesFromText,
+  lookupReleaseDates,
+  type DateHit,
+} from "@/lib/date-lookup";
 import Link from "next/link";
 
 type Tab = "names" | "cal" | "tape" | "io";
@@ -67,10 +79,10 @@ export default function DeskPage() {
   }, [drafts, draftReady]);
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "names", label: "Names" },
-    { id: "cal", label: "When" },
-    { id: "tape", label: "Sales" },
-    { id: "io", label: "Publish" },
+    { id: "names", label: "Sneaker names" },
+    { id: "cal", label: "Calendar dates" },
+    { id: "tape", label: "Resale sales" },
+    { id: "io", label: "Publish file" },
   ];
 
   return (
@@ -78,9 +90,9 @@ export default function DeskPage() {
       <div className="border-b border-line px-4 py-3">
         <h1 className="exq-display mt-1 text-3xl text-ink">Desk</h1>
         <p className="mt-1 max-w-3xl text-[13px] leading-5 text-muted">
-          Add a new sneaker on the left. Names already on the board need a yes
-          before you edit — so you do not wipe a write-up by mistake. This
-          phone is the working copy.
+          Add a new sneaker on the left. Put a release date on the file and it
+          shows on When. Names already on the board need a yes before you
+          edit. This phone is the working copy.
         </p>
         {msg ? (
           <p className="mt-2 font-mono text-[11px] text-gold">{msg}</p>
@@ -150,7 +162,7 @@ export default function DeskPage() {
 
       {tab === "names" && current ? (
         <p className="px-4 py-2 font-mono text-[10px] text-dim">
-          Open dossier{" "}
+          Open shoe page{" "}
           <Link href={collabHref(current.slug)} className="text-gold no-underline">
             {current.ticker}
           </Link>
@@ -193,7 +205,7 @@ function NamesTab({
     const nextPartner = draft.partner.trim();
     const nextBrand = draft.brand.trim();
     if (!nextTicker) {
-      onMsg("Need a ticker.");
+      onMsg("Need a board code.");
       return;
     }
     const slug = desk.addName({
@@ -210,7 +222,7 @@ function NamesTab({
       volume24h: 0,
       peakSize: "10",
       sizePremiumPct: 0,
-      dropDate: new Date().toISOString().slice(0, 10),
+      dropDate: isoDay(draft.dropDate),
       status: "pre-market",
       scarcity: 50,
       channels: ["Desk"],
@@ -220,12 +232,23 @@ function NamesTab({
       notes: ["Opened from Desk. Fill the file."],
     });
     if (!slug) {
-      onMsg("Ticker already on the board.");
+      onMsg("That board code is already on the board.");
       return;
     }
     onSelectNew(slug);
-    setDraft({ ticker: "", name: "", partner: "", brand: "", seat: "boutique" });
-    onMsg(`${nextTicker.toUpperCase()} saved on this phone.`);
+    setDraft({
+      ticker: "",
+      name: "",
+      partner: "",
+      brand: "",
+      seat: "boutique",
+      dropDate: "",
+    });
+    onMsg(
+      isoDay(draft.dropDate)
+        ? `${nextTicker.toUpperCase()} saved. It is on When.`
+        : `${nextTicker.toUpperCase()} saved on this phone.`,
+    );
   };
 
   const ordered = useMemo(
@@ -242,9 +265,9 @@ function NamesTab({
     <>
     <div className="grid lg:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.4fr)]">
       <Panel
-        kicker="BOARD"
-        title="Names"
-        action={`${desk.listed.length} live`}
+        kicker="THE BOARD"
+        title="Sneaker names"
+        action={`${desk.listed.length} on the board`}
         className="border-l-0 max-lg:border-r-0"
         bodyClassName="max-h-[22rem] overflow-auto lg:max-h-[36rem]"
         fill={false}
@@ -261,29 +284,37 @@ function NamesTab({
             Use this only if the pair is not already on the board.
           </p>
           <Field
-            label="Ticker"
+            label="Board code"
             value={draft.ticker}
-            placeholder="FOO.BAR"
+            placeholder="WSG.JAZZ"
             onChange={(ticker) => setDraft({ ...draft, ticker })}
           />
           <Field
-            label="Name"
+            label="Shoe name"
             value={draft.name}
             placeholder="Partner x silhouette"
             onChange={(name) => setDraft({ ...draft, name })}
           />
           <Field
-            label="Partner"
+            label="Collab partner"
             value={draft.partner}
+            placeholder="Westside Gunn"
             onChange={(partner) => setDraft({ ...draft, partner })}
           />
           <Field
-            label="Brand"
+            label="Shoe brand"
             value={draft.brand}
+            placeholder="Saucony"
             onChange={(brand) => setDraft({ ...draft, brand })}
           />
+          <Field
+            label="Release date"
+            value={draft.dropDate}
+            type="date"
+            onChange={(dropDate) => setDraft({ ...draft, dropDate })}
+          />
           <label className="block">
-            <span className="kicker">Seat</span>
+            <span className="kicker">Collab type</span>
             <select
               value={draft.seat}
               onChange={(e) =>
@@ -298,7 +329,7 @@ function NamesTab({
               ))}
             </select>
           </label>
-          <SaveButton onClick={openFromDraft}>Save name</SaveButton>
+          <SaveButton onClick={openFromDraft}>Save this sneaker</SaveButton>
         </form>
         <ul className="divide-y divide-line">
           {ordered.map((c) => {
@@ -332,7 +363,7 @@ function NamesTab({
       </Panel>
 
       <Panel
-        kicker="FILE"
+        kicker="SHOE FILE"
         title={current?.name ?? "No shoe open"}
         className="border-r-0 max-lg:border-l-0"
         bodyClassName="space-y-3 p-4"
@@ -346,22 +377,25 @@ function NamesTab({
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Field
-                label="Last"
+                label="Last sale price"
                 value={String(current.last || "")}
+                placeholder="286"
                 onChange={(v) => desk.patch(current.slug, { last: Number(v) || 0 })}
               />
               <Field
-                label="Retail"
+                label="Retail price"
                 value={String(current.retail || "")}
+                placeholder="170"
                 onChange={(v) => desk.patch(current.slug, { retail: Number(v) || 0 })}
               />
               <Field
-                label="Peak size"
+                label="Hottest size"
                 value={current.peakSize}
+                placeholder="10.5"
                 onChange={(v) => desk.patch(current.slug, { peakSize: v })}
               />
               <label className="block">
-                <span className="kicker">Status</span>
+                <span className="kicker">Where this shoe is now</span>
                 <select
                   value={current.status}
                   onChange={(e) =>
@@ -369,31 +403,69 @@ function NamesTab({
                   }
                   className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink"
                 >
-                  {["pre-market", "live", "secondary", "retired"].map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
+                  {(["pre-market", "live", "secondary", "retired"] as SessionStatus[]).map(
+                    (s) => (
+                      <option key={s} value={s}>
+                        {collabStatusLabel[s]}
+                      </option>
+                    ),
+                  )}
                 </select>
               </label>
             </div>
             <Field
-              label="Colorway"
+              label="Colorway name"
               value={current.colorway}
+              placeholder="Awesome God"
               onChange={(v) => desk.patch(current.slug, { colorway: v })}
             />
             <Field
-              label="Doors (comma)"
+              label="Release date"
+              value={isoDay(current.dropDate)}
+              type="date"
+              onChange={(v) => {
+                desk.setDropDate(current.slug, v);
+                onMsg(
+                  isoDay(v)
+                    ? `${current.ticker} is on When for that date.`
+                    : "Release date cleared. When dates already booked stay.",
+                );
+              }}
+            />
+            <p className="text-[12px] leading-4 text-muted">
+              Find dates, then pick one. It is not on When until you tap it.
+              The shop’s account is still the real time.
+            </p>
+            <DateLookup
+              query={[current.partner, current.brand, current.name, current.colorway]
+                .filter((part) => part && part !== "TBD")
+                .join(" ")}
+              onPick={(date) => {
+                desk.setDropDate(current.slug, date);
+                onMsg(`${current.ticker} is on When for ${date}.`);
+              }}
+              onMsg={onMsg}
+            />
+            <WhenDates
+              ticker={current.ticker}
+              shop={current.channels[0] ?? ""}
+              onMsg={onMsg}
+            />
+            <Field
+              label="Where it drops"
               value={current.channels.join(", ")}
-              placeholder="Kith, boutiques, EQL"
+              placeholder="adidas, SNKRS, Kith"
               onChange={(v) =>
                 desk.patch(current.slug, {
                   channels: v.split(",").map((x) => x.trim()).filter(Boolean),
                 })
               }
             />
+            <p className="text-[12px] leading-4 text-muted">
+              Shops and sites that actually have it. Separate with commas.
+            </p>
             <label className="block">
-              <span className="kicker">Thesis</span>
+              <span className="kicker">Why this pair matters</span>
               <textarea
                 value={current.thesis}
                 onChange={(e) => desk.patch(current.slug, { thesis: e.target.value })}
@@ -402,7 +474,7 @@ function NamesTab({
               />
             </label>
             <label className="block">
-              <span className="kicker">Strategy</span>
+              <span className="kicker">What to watch on this pair</span>
               <textarea
                 value={current.strategy}
                 onChange={(e) => desk.patch(current.slug, { strategy: e.target.value })}
@@ -411,7 +483,7 @@ function NamesTab({
               />
             </label>
             <label className="block">
-              <span className="kicker">Your take</span>
+              <span className="kicker">Your take on this pair</span>
               <textarea
                 value={desk.stamps[current.slug] ?? ""}
                 onChange={(e) => desk.setStamp(current.slug, e.target.value)}
@@ -427,7 +499,7 @@ function NamesTab({
                   onMsg("Saved on this phone.");
                 }}
               >
-                Save
+                Save this shoe
               </SaveButton>
               {seedSlugs.has(current.slug) ? (
                 <button
@@ -519,6 +591,200 @@ function NamesTab({
   );
 }
 
+function DateLookup({
+  query,
+  onPick,
+  onMsg,
+}: {
+  query: string;
+  onPick: (date: string) => void;
+  onMsg: (s: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [paste, setPaste] = useState("");
+  const [hits, setHits] = useState<DateHit[]>([]);
+
+  function showHits(next: DateHit[], empty: string) {
+    setHits(next);
+    onMsg(next.length ? "Pick a date. It does not go on When until you tap it." : empty);
+  }
+
+  return (
+    <div className="space-y-2 border border-line p-3">
+      <div className="kicker">Find a date</div>
+      <p className="text-[12px] leading-4 text-muted">
+        Search the public web, or paste a line from the shop or partner post.
+        You pick. You can still type the date above.
+      </p>
+      <SaveButton
+        onClick={() => {
+          void (async () => {
+            setBusy(true);
+            const found = await lookupReleaseDates(query);
+            showHits(
+              found.hits,
+              found.error ?? "No date found. Paste a line from the post.",
+            );
+            setBusy(false);
+          })();
+        }}
+      >
+        {busy ? "Looking up…" : "Look up dates"}
+      </SaveButton>
+      <label className="block">
+        <span className="kicker">Or paste a line from the post</span>
+        <textarea
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
+          rows={2}
+          placeholder="Drops Friday, October 2, 2026 at Kith."
+          className="mt-1 w-full border border-line bg-bg px-2 py-1.5 text-[13px] text-ink"
+        />
+      </label>
+      <button
+        type="button"
+        className="border border-line px-3 py-2 text-[13px] text-muted"
+        onClick={() => {
+          const next = datesFromText(paste, "Pasted text");
+          showHits(next, "No date in that text. Type it above.");
+        }}
+      >
+        Read dates from that text
+      </button>
+      {hits.length ? (
+        <ul className="divide-y divide-line border border-line">
+          {hits.map((hit) => (
+            <li key={`${hit.date}-${hit.source}`}>
+              <button
+                type="button"
+                className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-panel-2"
+                onClick={() => onPick(hit.date)}
+              >
+                <span className="text-[13px] text-gold">
+                  Use {formatDay(hit.date)}
+                </span>
+                <span className="text-[12px] text-muted">{hit.source}</span>
+                {hit.snippet ? (
+                  <span className="text-[11px] leading-4 text-dim">{hit.snippet}</span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function WhenDates({
+  ticker,
+  shop,
+  onMsg,
+}: {
+  ticker: string;
+  shop: string;
+  onMsg: (s: string) => void;
+}) {
+  const desk = useDesk();
+  const [date, setDate] = useState("");
+  const [where, setWhere] = useState("");
+  const [how, setHow] = useState<DropEvent["status"]>("priced");
+  const rows = windowsForTicker(desk.calendar, ticker);
+
+  function calendarIndex(ev: DropEvent) {
+    return desk.calendar.findIndex(
+      (row) =>
+        row.date === ev.date &&
+        row.ticker === ev.ticker &&
+        row.name === ev.name &&
+        row.channel === ev.channel &&
+        row.status === ev.status,
+    );
+  }
+
+  function addDate() {
+    const day = isoDay(date);
+    if (!day) {
+      onMsg("Pick a date first.");
+      return;
+    }
+    if (hasWindowOnDay(desk.calendar, ticker, day)) {
+      onMsg("Already on When for that day.");
+      return;
+    }
+    const collab = desk.listed.find((c) => c.ticker === ticker);
+    const past = windowStatusForDate(day, collab?.status ?? "pre-market") === "closed";
+    desk.addWindow({
+      date: day,
+      ticker,
+      name: collab?.colorway && collab.colorway !== "TBD" ? collab.colorway : "Release",
+      channel: where.trim() || shop || "Desk",
+      status: past ? "closed" : how,
+    });
+    setDate("");
+    setWhere("");
+    setHow("priced");
+    onMsg(`${ticker} added to When.`);
+  }
+
+  return (
+    <div className="space-y-2 border border-line p-3">
+      <div className="kicker">Dates on the calendar</div>
+      {rows.length ? (
+        <ul className="space-y-2">
+          {rows.map((ev, i) => {
+            const index = calendarIndex(ev);
+            return (
+              <li
+                key={`${ev.date}-${ev.channel}-${i}`}
+                className="flex flex-wrap items-center justify-between gap-2 text-[12px]"
+              >
+                <span className="text-muted">
+                  {formatDay(ev.date)} · {ev.channel}
+                </span>
+                <div className="flex items-center gap-2">
+                  <HowSelect
+                    value={ev.status}
+                    onChange={(status) => {
+                      if (index < 0) return;
+                      desk.patchWindow(index, { status });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="font-mono text-[10px] text-down uppercase"
+                    onClick={() => {
+                      if (index >= 0) desk.removeWindow(index);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-[12px] leading-4 text-dim">
+          Nothing on When yet. Set the release date above, or add another date
+          here.
+        </p>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Add another date" value={date} type="date" onChange={setDate} />
+        <Field
+          label="Shop or site"
+          value={where}
+          placeholder={shop || "adidas, SNKRS"}
+          onChange={setWhere}
+        />
+        <HowSelect value={how} onChange={setHow} label="How it drops" />
+      </div>
+      <SaveButton onClick={addDate}>Add to When</SaveButton>
+    </div>
+  );
+}
+
 function CalTab({
   onMsg,
   draft,
@@ -529,28 +795,57 @@ function CalTab({
   setDraft: (next: CalDraft) => void;
 }) {
   const desk = useDesk();
+  const listed = useMemo(
+    () => [...desk.listed].sort((a, b) => a.ticker.localeCompare(b.ticker)),
+    [desk.listed],
+  );
 
-  function saveWindow() {
-    if (!draft.ticker.trim() || !draft.name.trim()) {
-      onMsg("Ticker and name required.");
+  function pickShoe(ticker: string) {
+    const collab = listed.find((c) => c.ticker === ticker);
+    if (!collab) {
+      setDraft({ ...draft, ticker: "", name: "" });
       return;
     }
+    setDraft({
+      ...draft,
+      ticker: collab.ticker,
+      name: collab.name,
+      channel: draft.channel || collab.channels[0] || "",
+    });
+  }
+
+  function saveWindow() {
+    const day = isoDay(draft.date);
+    const ticker = draft.ticker.trim().toUpperCase();
+    if (!day || !ticker) {
+      onMsg("Pick a shoe and a date.");
+      return;
+    }
+    if (hasWindowOnDay(desk.calendar, ticker, day)) {
+      onMsg("Already on When for that day.");
+      return;
+    }
+    const collab = listed.find((c) => c.ticker === ticker);
     desk.addWindow({
-      date: draft.date,
-      ticker: draft.ticker.trim().toUpperCase(),
-      name: draft.name.trim(),
-      channel: draft.channel.trim() || "Desk",
+      date: day,
+      ticker,
+      name: draft.name.trim() || collab?.name || ticker,
+      channel: draft.channel.trim() || collab?.channels[0] || "Desk",
       status: draft.status,
     });
+    if (collab && !isoDay(collab.dropDate)) {
+      desk.patch(collab.slug, { dropDate: day });
+    }
     onMsg("Saved. It is on When.");
-    setDraft({ ...draft, name: "" });
+    setDraft({ ...draft, name: collab ? collab.name : "" });
   }
 
   return (
-    <Panel kicker="WHEN" title="Calendar" className="border-x-0" bodyClassName="p-4" fill={false}>
+    <Panel kicker="DATES" title="Drop calendar" className="border-x-0" bodyClassName="p-4" fill={false}>
       <p className="mb-3 text-[13px] leading-5 text-muted">
-        Type the date, then tap Save. Leaving this screen keeps the draft on
-        this phone. It does not show on When until you save.
+        Pick a shoe already on the board, set the date, and say how it drops
+        — for sale, raffle, surprise, or done. A release date on the shoe
+        file also puts it on When as for sale until you change it.
       </p>
       <form
         className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
@@ -559,36 +854,40 @@ function CalTab({
           saveWindow();
         }}
       >
-        <Field label="Date" value={draft.date} onChange={(date) => setDraft({ ...draft, date })} />
-        <Field
-          label="Ticker"
-          value={draft.ticker}
-          onChange={(ticker) => setDraft({ ...draft, ticker })}
-        />
-        <Field label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-        <Field
-          label="Channel"
-          value={draft.channel}
-          onChange={(channel) => setDraft({ ...draft, channel })}
-        />
-        <label className="block">
-          <span className="kicker">Status</span>
+        <label className="block sm:col-span-2 lg:col-span-2">
+          <span className="kicker">Shoe on the board</span>
           <select
-            value={draft.status}
-            onChange={(e) =>
-              setDraft({ ...draft, status: e.target.value as DropEvent["status"] })
-            }
+            value={listed.some((c) => c.ticker === draft.ticker) ? draft.ticker : ""}
+            onChange={(e) => pickShoe(e.target.value)}
             className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink"
           >
-            {["priced", "raffle", "shock", "closed"].map((s) => (
-              <option key={s} value={s}>
-                {s}
+            <option value="">Pick a name on the board</option>
+            {listed.map((c) => (
+              <option key={c.slug} value={c.ticker}>
+                {c.ticker} · {c.name}
               </option>
             ))}
           </select>
         </label>
+        <Field
+          label="Drop date"
+          value={isoDay(draft.date)}
+          type="date"
+          onChange={(date) => setDraft({ ...draft, date })}
+        />
+        <Field
+          label="Shop or site"
+          value={draft.channel}
+          placeholder="adidas, SNKRS, Kith"
+          onChange={(channel) => setDraft({ ...draft, channel })}
+        />
+        <HowSelect
+          value={draft.status}
+          onChange={(status) => setDraft({ ...draft, status })}
+          label="How it drops"
+        />
         <div className="sm:col-span-2 lg:col-span-5">
-          <SaveButton onClick={saveWindow}>Save</SaveButton>
+          <SaveButton onClick={saveWindow}>Save this date</SaveButton>
         </div>
       </form>
       <ul className="divide-y divide-line border border-line">
@@ -596,7 +895,7 @@ function CalTab({
           <li key={`${ev.date}-${ev.ticker}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
             <div>
               <div className="font-mono text-[11px] text-dim">
-                {ev.date} · {ev.status} · {ev.channel}
+                {ev.date} · {windowStatusLabel[ev.status]} · {ev.channel}
               </div>
               <div className="font-cond text-[14px] text-gold-2">{ev.ticker}</div>
               <div className="text-[12px] text-muted">{ev.name}</div>
@@ -606,7 +905,7 @@ function CalTab({
               className="font-mono text-[10px] text-down uppercase"
               onClick={() => desk.removeWindow(i)}
             >
-              Cut
+              Remove
             </button>
           </li>
         ))}
@@ -626,21 +925,31 @@ function TapeTab({ onMsg }: { onMsg: (s: string) => void }) {
   const [side, setSide] = useState<"buy" | "sell">("buy");
 
   return (
-    <Panel kicker="SALES" title="Last sales" className="border-x-0" bodyClassName="p-4" fill={false}>
+    <Panel kicker="SALES" title="Resale sales" className="border-x-0" bodyClassName="p-4" fill={false}>
       <div className="mb-4 grid gap-2 sm:grid-cols-5">
-        <Field label="Time ET" value={t} onChange={setT} />
-        <Field label="Ticker" value={ticker} onChange={setTicker} />
-        <Field label="Size" value={size} onChange={setSize} />
-        <Field label="Print" value={price} onChange={setPrice} />
+        <Field label="Sale time (Eastern)" value={t} onChange={setT} />
+        <Field
+          label="Board code"
+          value={ticker}
+          placeholder="WSG.JAZZ"
+          onChange={setTicker}
+        />
+        <Field label="Shoe size" value={size} onChange={setSize} />
+        <Field
+          label="Sale price"
+          value={price}
+          placeholder="286"
+          onChange={setPrice}
+        />
         <label className="block">
-          <span className="kicker">Side</span>
+          <span className="kicker">Bought or sold</span>
           <select
             value={side}
             onChange={(e) => setSide(e.target.value as "buy" | "sell")}
             className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink"
           >
-            <option value="buy">buy</option>
-            <option value="sell">sell</option>
+            <option value="buy">Bought</option>
+            <option value="sell">Sold</option>
           </select>
         </label>
       </div>
@@ -648,15 +957,15 @@ function TapeTab({ onMsg }: { onMsg: (s: string) => void }) {
         onClick={() => {
           const px = Number(price);
           if (!ticker || !px) {
-            onMsg("Ticker and print required.");
+            onMsg("Board code and sale price required.");
             return;
           }
           desk.addPrint({ t, ticker: ticker.toUpperCase(), size, price: px, side });
-          onMsg("Print on tape.");
+          onMsg("Sale saved.");
           setPrice("");
         }}
       >
-        Save sale
+        Save this sale
       </SaveButton>
       <ul className="mt-4 divide-y divide-line border border-line">
         {desk.prints.map((p, i) => (
@@ -666,7 +975,7 @@ function TapeTab({ onMsg }: { onMsg: (s: string) => void }) {
             <span>{p.size}</span>
             <span className={p.side === "buy" ? "text-up" : "text-down"}>{p.price}</span>
             <button type="button" className="text-[10px] text-down uppercase" onClick={() => desk.removePrint(i)}>
-              Cut
+              Remove
             </button>
           </li>
         ))}
@@ -680,12 +989,11 @@ function IoTab({ onMsg }: { onMsg: (s: string) => void }) {
   const json = JSON.stringify(desk.exportFile(), null, 2);
 
   return (
-    <Panel kicker="IO" title="Publish" className="border-x-0" bodyClassName="space-y-3 p-4" fill={false}>
+    <Panel kicker="FILE" title="Publish this desk" className="border-x-0" bodyClassName="space-y-3 p-4" fill={false}>
       <p className="text-[13px] leading-5 text-muted">
-        Working copy is on this device. To refresh the app without a Play
-        upload, download the file, replace{" "}
-        <span className="font-mono text-[11px] text-ink">docs/desk/book.json</span>{" "}
-        in the GitHub repo, and push to main. Other installs pull it on launch.
+        Dates on this phone are the desk call. They update when you publish
+        the desk file to GitHub — not by shipping a new Play Store build. The
+        shop or partner account is the real time. Follow those.
       </p>
       <p className="font-mono text-[11px] text-dim">
         Local {desk.file.updatedAt}
@@ -706,7 +1014,7 @@ function IoTab({ onMsg }: { onMsg: (s: string) => void }) {
             onMsg("Downloaded book.json.");
           }}
         >
-          Download JSON
+          Download desk file
         </button>
         <button
           type="button"
@@ -716,7 +1024,7 @@ function IoTab({ onMsg }: { onMsg: (s: string) => void }) {
             onMsg("Copied.");
           }}
         >
-          Copy
+          Copy desk file
         </button>
         <button
           type="button"
@@ -726,10 +1034,10 @@ function IoTab({ onMsg }: { onMsg: (s: string) => void }) {
             onMsg(ok ? "Pulled remote book into this device." : "Remote book not reachable.");
           }}
         >
-          Pull remote
+          Pull from GitHub
         </button>
         <label className="border border-line px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-muted uppercase">
-          Import
+          Import a desk file
           <input
             type="file"
             accept="application/json"
@@ -778,21 +1086,58 @@ function Field({
   value,
   onChange,
   placeholder,
+  type = "text",
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  type?: "text" | "date";
 }) {
   return (
     <label className="block">
       <span className="kicker">{label}</span>
       <input
+        type={type}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink outline-none focus:border-gold"
       />
+    </label>
+  );
+}
+
+const howItDrops: DropEvent["status"][] = ["priced", "raffle", "shock", "closed"];
+
+function HowSelect({
+  value,
+  onChange,
+  label,
+}: {
+  value: DropEvent["status"];
+  onChange: (v: DropEvent["status"]) => void;
+  label?: string;
+}) {
+  const select = (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value as DropEvent["status"])}
+      className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink"
+      aria-label={label ?? "How it drops"}
+    >
+      {howItDrops.map((s) => (
+        <option key={s} value={s}>
+          {windowStatusLabel[s]}
+        </option>
+      ))}
+    </select>
+  );
+  if (!label) return select;
+  return (
+    <label className="block">
+      <span className="kicker">{label}</span>
+      {select}
     </label>
   );
 }

@@ -21,6 +21,9 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       iconColor: "#c9a227",
     },
+    CapacitorHttp: {
+      enabled: true,
+    },
   },
 };
 

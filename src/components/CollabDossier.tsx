@@ -46,7 +46,9 @@ export function CollabDossier({ slug }: { slug: string }) {
       <div className="border-b border-line px-4 py-3">
         <p className="text-[12px] text-dim">
           {collabStatusLabel[c.status]}
-          {c.dropDate ? ` · dropped ${formatDay(c.dropDate)}` : ""}
+          {c.dropDate
+            ? ` · desk date ${formatDay(c.dropDate)} · the shop’s account is the real time`
+            : " · no desk date yet"}
         </p>
         <h1 className="exq-display mt-1 text-3xl text-ink">{c.name}</h1>
         <p className="mt-1 text-[13px] text-muted">{c.colorway}</p>
