@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LookThumb } from "@/components/LookThumb";
 import { Panel } from "@/components/Panel";
 import {
@@ -11,6 +11,15 @@ import {
 } from "@/data/market";
 import { collabHref } from "@/lib/collab-path";
 import { useDesk } from "@/lib/desk-book";
+import { seedSlugs } from "@/lib/desk-file";
+import {
+  emptyDeskDrafts,
+  loadDeskDrafts,
+  writeDeskDrafts,
+  type CalDraft,
+  type DeskDrafts,
+  type NameDraft,
+} from "@/lib/desk-draft";
 import { clsx } from "@/lib/format";
 import Link from "next/link";
 
@@ -25,12 +34,37 @@ const seats: CollabSeat[] = [
   "brand",
 ];
 
+function savedWhen(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function DeskPage() {
   const desk = useDesk();
   const [tab, setTab] = useState<Tab>("names");
-  const [selected, setSelected] = useState("wsg-jazz");
+  const [selected, setSelected] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [drafts, setDrafts] = useState<DeskDrafts>(emptyDeskDrafts);
+  const [draftReady, setDraftReady] = useState(false);
   const current = desk.get(selected);
+
+  useEffect(() => {
+    setDrafts(loadDeskDrafts());
+    setDraftReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    writeDeskDrafts(drafts);
+  }, [drafts, draftReady]);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "names", label: "Names" },
@@ -44,10 +78,9 @@ export default function DeskPage() {
       <div className="border-b border-line px-4 py-3">
         <h1 className="exq-display mt-1 text-3xl text-ink">Desk</h1>
         <p className="mt-1 max-w-3xl text-[13px] leading-5 text-muted">
-          Add a name when you hear it. Take it off the board when it is dead.
-          Write the take. Dates and sales live here so they do not rot in a
-          build. This phone is the working copy. Export JSON and push to GitHub
-          to update other installs.
+          Add a new sneaker on the left. Names already on the board need a yes
+          before you edit — so you do not wipe a write-up by mistake. This
+          phone is the working copy.
         </p>
         {msg ? (
           <p className="mt-2 font-mono text-[11px] text-gold">{msg}</p>
@@ -71,16 +104,49 @@ export default function DeskPage() {
         ))}
       </div>
 
-      {tab === "names" ? (
+      <div className={tab === "names" ? "" : "hidden"}>
         <NamesTab
           selected={selected}
-          onSelect={setSelected}
+          editing={editing}
+          pending={pending}
+          onAskEdit={(slug) => {
+            if (slug === selected && editing) return;
+            setPending(slug);
+          }}
+          onConfirmEdit={() => {
+            if (!pending) return;
+            setSelected(pending);
+            setEditing(true);
+            setPending(null);
+          }}
+          onCancelEdit={() => setPending(null)}
+          onSelectNew={(slug) => {
+            setSelected(slug);
+            setEditing(true);
+            setPending(null);
+          }}
           onMsg={setMsg}
+          draft={drafts.name}
+          setDraft={(name) => setDrafts((d) => ({ ...d, name }))}
         />
+      </div>
+      {draftReady ? (
+        <>
+          <div className={tab === "cal" ? "" : "hidden"}>
+            <CalTab
+              onMsg={setMsg}
+              draft={drafts.cal}
+              setDraft={(cal) => setDrafts((d) => ({ ...d, cal }))}
+            />
+          </div>
+          <div className={tab === "tape" ? "" : "hidden"}>
+            <TapeTab onMsg={setMsg} />
+          </div>
+          <div className={tab === "io" ? "" : "hidden"}>
+            <IoTab onMsg={setMsg} />
+          </div>
+        </>
       ) : null}
-      {tab === "cal" ? <CalTab onMsg={setMsg} /> : null}
-      {tab === "tape" ? <TapeTab onMsg={setMsg} /> : null}
-      {tab === "io" ? <IoTab onMsg={setMsg} /> : null}
 
       {tab === "names" && current ? (
         <p className="px-4 py-2 font-mono text-[10px] text-dim">
@@ -96,23 +162,36 @@ export default function DeskPage() {
 
 function NamesTab({
   selected,
-  onSelect,
+  editing,
+  pending,
+  onAskEdit,
+  onConfirmEdit,
+  onCancelEdit,
+  onSelectNew,
   onMsg,
+  draft,
+  setDraft,
 }: {
   selected: string;
-  onSelect: (slug: string) => void;
+  editing: boolean;
+  pending: string | null;
+  onAskEdit: (slug: string) => void;
+  onConfirmEdit: () => void;
+  onCancelEdit: () => void;
+  onSelectNew: (slug: string) => void;
   onMsg: (s: string) => void;
+  draft: NameDraft;
+  setDraft: (next: NameDraft) => void;
 }) {
   const desk = useDesk();
   const current = desk.get(selected);
+  const pendingName = pending ? desk.get(pending) : undefined;
 
-  const openFromForm = (form: HTMLFormElement) => {
-    const fd = new FormData(form);
-    const nextTicker = String(fd.get("ticker") ?? "").trim();
-    const nextName = String(fd.get("name") ?? "").trim();
-    const nextPartner = String(fd.get("partner") ?? "").trim();
-    const nextBrand = String(fd.get("brand") ?? "").trim();
-    const nextSeat = (String(fd.get("seat") ?? "boutique") as CollabSeat) || "boutique";
+  const openFromDraft = () => {
+    const nextTicker = draft.ticker.trim();
+    const nextName = draft.name.trim();
+    const nextPartner = draft.partner.trim();
+    const nextBrand = draft.brand.trim();
     if (!nextTicker) {
       onMsg("Need a ticker.");
       return;
@@ -121,7 +200,7 @@ function NamesTab({
       ticker: nextTicker,
       name: nextName || nextTicker,
       partner: nextPartner || "TBD",
-      seat: nextSeat,
+      seat: draft.seat || "boutique",
       brand: nextBrand || "TBD",
       silhouette: nextName || nextTicker,
       colorway: "TBD",
@@ -138,15 +217,15 @@ function NamesTab({
       materials: [],
       thesis: "",
       strategy: "",
-              notes: ["Opened from Desk. Fill the file."],
+      notes: ["Opened from Desk. Fill the file."],
     });
     if (!slug) {
       onMsg("Ticker already on the board.");
       return;
     }
-    onSelect(slug);
-    form.reset();
-    onMsg(`${nextTicker.toUpperCase()} opened and put on coverage.`);
+    onSelectNew(slug);
+    setDraft({ ticker: "", name: "", partner: "", brand: "", seat: "boutique" });
+    onMsg(`${nextTicker.toUpperCase()} saved on this phone.`);
   };
 
   const ordered = useMemo(
@@ -160,6 +239,7 @@ function NamesTab({
   );
 
   return (
+    <>
     <div className="grid lg:grid-cols-[minmax(240px,0.8fr)_minmax(0,1.4fr)]">
       <Panel
         kicker="BOARD"
@@ -173,19 +253,42 @@ function NamesTab({
           className="space-y-2 border-b border-line p-3"
           onSubmit={(e) => {
             e.preventDefault();
-            openFromForm(e.currentTarget);
+            openFromDraft();
           }}
         >
-          <div className="kicker">New name</div>
-          <DraftField name="ticker" label="Ticker" placeholder="FOO.BAR" />
-          <DraftField name="name" label="Name" placeholder="Partner x silhouette" />
-          <DraftField name="partner" label="Partner" />
-          <DraftField name="brand" label="Brand" />
+          <div className="kicker">Add a new sneaker</div>
+          <p className="text-[12px] leading-4 text-muted">
+            Use this only if the pair is not already on the board.
+          </p>
+          <Field
+            label="Ticker"
+            value={draft.ticker}
+            placeholder="FOO.BAR"
+            onChange={(ticker) => setDraft({ ...draft, ticker })}
+          />
+          <Field
+            label="Name"
+            value={draft.name}
+            placeholder="Partner x silhouette"
+            onChange={(name) => setDraft({ ...draft, name })}
+          />
+          <Field
+            label="Partner"
+            value={draft.partner}
+            onChange={(partner) => setDraft({ ...draft, partner })}
+          />
+          <Field
+            label="Brand"
+            value={draft.brand}
+            onChange={(brand) => setDraft({ ...draft, brand })}
+          />
           <label className="block">
             <span className="kicker">Seat</span>
             <select
-              name="seat"
-              defaultValue="boutique"
+              value={draft.seat}
+              onChange={(e) =>
+                setDraft({ ...draft, seat: e.target.value as CollabSeat })
+              }
               className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink"
             >
               {seats.map((s) => (
@@ -195,16 +298,7 @@ function NamesTab({
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            className="border border-gold px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-gold uppercase"
-            onClick={(e) => {
-              const form = e.currentTarget.form;
-              if (form) openFromForm(form);
-            }}
-          >
-            Open name
-          </button>
+          <SaveButton onClick={openFromDraft}>Save name</SaveButton>
         </form>
         <ul className="divide-y divide-line">
           {ordered.map((c) => {
@@ -213,7 +307,7 @@ function NamesTab({
               <li key={c.slug}>
                 <button
                   type="button"
-                  onClick={() => onSelect(c.slug)}
+                  onClick={() => onAskEdit(c.slug)}
                   className={clsx(
                     "flex w-full items-center gap-2 px-3 py-2 text-left",
                     selected === c.slug ? "bg-line/60" : "hover:bg-panel-2",
@@ -239,13 +333,17 @@ function NamesTab({
 
       <Panel
         kicker="FILE"
-        title={current?.ticker ?? "Select a name"}
+        title={current?.name ?? "No shoe open"}
         className="border-r-0 max-lg:border-l-0"
         bodyClassName="space-y-3 p-4"
         fill={false}
       >
-        {current ? (
+        {current && editing ? (
           <>
+            <p className="text-[13px] leading-5 text-muted">
+              You are editing {current.name}. This is already on the desk — not
+              a new sneaker.
+            </p>
             <div className="grid grid-cols-2 gap-2">
               <Field
                 label="Last"
@@ -323,10 +421,30 @@ function NamesTab({
               />
             </label>
             <div className="flex flex-wrap gap-2">
+              <SaveButton
+                onClick={() => {
+                  desk.save();
+                  onMsg("Saved on this phone.");
+                }}
+              >
+                Save
+              </SaveButton>
+              {seedSlugs.has(current.slug) ? (
+                <button
+                  type="button"
+                  className="border border-line px-3 py-2 text-[13px] text-muted"
+                  onClick={() => {
+                    desk.restoreSeedCopy(current.slug);
+                    onMsg("Original write-up is back.");
+                  }}
+                >
+                  Put original write-up back
+                </button>
+              ) : null}
               {desk.killed.has(current.slug) ? (
                 <button
                   type="button"
-                  className="border border-up px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-up uppercase"
+                  className="border border-up px-3 py-2 text-[13px] text-up"
                   onClick={() => {
                     desk.restore(current.slug);
                     onMsg(`${current.ticker} is back on the board.`);
@@ -337,7 +455,7 @@ function NamesTab({
               ) : (
                 <button
                   type="button"
-                  className="border border-down px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-down uppercase"
+                  className="border border-down px-3 py-2 text-[13px] text-down"
                   onClick={() => {
                     desk.kill(current.slug);
                     onMsg(`${current.ticker} taken off the board.`);
@@ -347,35 +465,119 @@ function NamesTab({
                 </button>
               )}
             </div>
+            <p className="font-mono text-[11px] text-dim">
+              {desk.ready
+                ? `Saved on this phone · ${savedWhen(desk.file.updatedAt)}`
+                : "Saved on this phone"}
+            </p>
           </>
         ) : (
-          <p className="font-mono text-[11px] text-dim">Select a name.</p>
+          <p className="text-[13px] leading-5 text-muted">
+            Add a new sneaker on the left, or tap a name that is already on the
+            board. You will be asked before anything is edited.
+          </p>
         )}
       </Panel>
     </div>
+    {pendingName ? (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] pt-10 sm:items-center sm:pb-10">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="exq-edit-shoe-title"
+          className="w-full max-w-md border border-line bg-panel shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+        >
+          <div className="border-b border-line px-4 py-3">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-gold uppercase">
+              Already on the desk
+            </p>
+            <h2
+              id="exq-edit-shoe-title"
+              className="exq-display mt-1 text-2xl text-ink"
+            >
+              Do you want to edit this shoe?
+            </h2>
+            <p className="mt-2 text-[13px] leading-5 text-muted">
+              {pendingName.name} is already on the board. This is not a new
+              sneaker. Editing can change the write-up on this phone.
+            </p>
+          </div>
+          <div className="flex gap-2 px-4 py-3">
+            <SaveButton onClick={onConfirmEdit}>Edit this shoe</SaveButton>
+            <button
+              type="button"
+              className="border border-line px-3 py-2 text-[13px] text-muted"
+              onClick={onCancelEdit}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }
 
-function CalTab({ onMsg }: { onMsg: (s: string) => void }) {
+function CalTab({
+  onMsg,
+  draft,
+  setDraft,
+}: {
+  onMsg: (s: string) => void;
+  draft: CalDraft;
+  setDraft: (next: CalDraft) => void;
+}) {
   const desk = useDesk();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [ticker, setTicker] = useState("");
-  const [name, setName] = useState("");
-  const [channel, setChannel] = useState("");
-  const [status, setStatus] = useState<DropEvent["status"]>("raffle");
+
+  function saveWindow() {
+    if (!draft.ticker.trim() || !draft.name.trim()) {
+      onMsg("Ticker and name required.");
+      return;
+    }
+    desk.addWindow({
+      date: draft.date,
+      ticker: draft.ticker.trim().toUpperCase(),
+      name: draft.name.trim(),
+      channel: draft.channel.trim() || "Desk",
+      status: draft.status,
+    });
+    onMsg("Saved. It is on When.");
+    setDraft({ ...draft, name: "" });
+  }
 
   return (
     <Panel kicker="WHEN" title="Calendar" className="border-x-0" bodyClassName="p-4" fill={false}>
-      <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        <Field label="Date" value={date} onChange={setDate} />
-        <Field label="Ticker" value={ticker} onChange={setTicker} />
-        <Field label="Name" value={name} onChange={setName} />
-        <Field label="Channel" value={channel} onChange={setChannel} />
+      <p className="mb-3 text-[13px] leading-5 text-muted">
+        Type the date, then tap Save. Leaving this screen keeps the draft on
+        this phone. It does not show on When until you save.
+      </p>
+      <form
+        className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          saveWindow();
+        }}
+      >
+        <Field label="Date" value={draft.date} onChange={(date) => setDraft({ ...draft, date })} />
+        <Field
+          label="Ticker"
+          value={draft.ticker}
+          onChange={(ticker) => setDraft({ ...draft, ticker })}
+        />
+        <Field label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
+        <Field
+          label="Channel"
+          value={draft.channel}
+          onChange={(channel) => setDraft({ ...draft, channel })}
+        />
         <label className="block">
           <span className="kicker">Status</span>
           <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as DropEvent["status"])}
+            value={draft.status}
+            onChange={(e) =>
+              setDraft({ ...draft, status: e.target.value as DropEvent["status"] })
+            }
             className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink"
           >
             {["priced", "raffle", "shock", "closed"].map((s) => (
@@ -385,22 +587,10 @@ function CalTab({ onMsg }: { onMsg: (s: string) => void }) {
             ))}
           </select>
         </label>
-      </div>
-      <button
-        type="button"
-        className="mb-4 border border-gold px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-gold uppercase"
-        onClick={() => {
-          if (!ticker || !name) {
-            onMsg("Ticker and name required.");
-            return;
-          }
-          desk.addWindow({ date, ticker: ticker.toUpperCase(), name, channel: channel || "Desk", status });
-          onMsg("Window booked.");
-          setName("");
-        }}
-      >
-        Book window
-      </button>
+        <div className="sm:col-span-2 lg:col-span-5">
+          <SaveButton onClick={saveWindow}>Save</SaveButton>
+        </div>
+      </form>
       <ul className="divide-y divide-line border border-line">
         {desk.calendar.map((ev, i) => (
           <li key={`${ev.date}-${ev.ticker}-${i}`} className="flex items-center justify-between gap-2 px-3 py-2">
@@ -454,9 +644,7 @@ function TapeTab({ onMsg }: { onMsg: (s: string) => void }) {
           </select>
         </label>
       </div>
-      <button
-        type="button"
-        className="mb-4 border border-gold px-2 py-1 font-mono text-[10px] tracking-[0.14em] text-gold uppercase"
+      <SaveButton
         onClick={() => {
           const px = Number(price);
           if (!ticker || !px) {
@@ -468,9 +656,9 @@ function TapeTab({ onMsg }: { onMsg: (s: string) => void }) {
           setPrice("");
         }}
       >
-        Print
-      </button>
-      <ul className="divide-y divide-line border border-line">
+        Save sale
+      </SaveButton>
+      <ul className="mt-4 divide-y divide-line border border-line">
         {desk.prints.map((p, i) => (
           <li key={`${p.t}-${p.ticker}-${i}`} className="flex items-center justify-between px-3 py-2 font-mono text-[12px]">
             <span className="text-dim">{p.t}</span>
@@ -567,24 +755,21 @@ function IoTab({ onMsg }: { onMsg: (s: string) => void }) {
   );
 }
 
-function DraftField({
-  name,
-  label,
-  placeholder,
+function SaveButton({
+  children,
+  onClick,
 }: {
-  name: string;
-  label: string;
-  placeholder?: string;
+  children: React.ReactNode;
+  onClick: () => void;
 }) {
   return (
-    <label className="block">
-      <span className="kicker">{label}</span>
-      <input
-        name={name}
-        placeholder={placeholder}
-        className="mt-1 w-full border border-line bg-bg px-2 py-1 font-mono text-[12px] text-ink outline-none focus:border-gold"
-      />
-    </label>
+    <button
+      type="button"
+      onClick={onClick}
+      className="border border-gold bg-gold/15 px-3 py-2 text-[13px] text-gold"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -593,19 +778,16 @@ function Field({
   value,
   onChange,
   placeholder,
-  name,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  name?: string;
 }) {
   return (
     <label className="block">
       <span className="kicker">{label}</span>
       <input
-        name={name}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}

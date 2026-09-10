@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useRef } from "react";
+import { usePathname } from "next/navigation";
 import { DeskBookProvider, useDesk } from "@/lib/desk-book";
 import { DeskPrefsProvider } from "@/lib/desk-prefs-context";
 import { clsx } from "@/lib/format";
@@ -14,6 +13,7 @@ const nav = [
   { href: "/", label: "Board" },
   { href: "/when", label: "When" },
   { href: "/saved", label: "Saved" },
+  { href: "/desk", label: "Desk" },
 ];
 
 export function TerminalShell({ children }: { children: React.ReactNode }) {
@@ -27,38 +27,11 @@ export function TerminalShell({ children }: { children: React.ReactNode }) {
 }
 
 function ExqMark() {
-  const router = useRouter();
-  const timer = useRef<number | null>(null);
-  const openedDesk = useRef(false);
-
-  function start() {
-    openedDesk.current = false;
-    timer.current = window.setTimeout(() => {
-      openedDesk.current = true;
-      router.push("/desk/");
-    }, 700);
-  }
-
-  function clear() {
-    if (timer.current != null) {
-      window.clearTimeout(timer.current);
-      timer.current = null;
-    }
-  }
-
   return (
     <Link
       href="/"
-      title="Hold for Desk"
-      className="flex items-baseline gap-2 no-underline"
-      onPointerDown={start}
-      onPointerUp={clear}
-      onPointerLeave={clear}
-      onPointerCancel={clear}
-      onContextMenu={(e) => e.preventDefault()}
-      onClick={(e) => {
-        if (openedDesk.current) e.preventDefault();
-      }}
+      aria-label="Exquisite Collaboration"
+      className="exq-wordmark-hit flex items-baseline gap-2 no-underline"
     >
       <span className="flex flex-col leading-none">
         <span className="exq-wordmark text-[17px] text-gold">Exquisite</span>

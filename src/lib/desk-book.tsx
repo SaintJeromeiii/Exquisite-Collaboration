@@ -17,6 +17,7 @@ import {
   resolveDesk,
   slugFromTicker,
   type CollabPatch,
+  restoreWipedSeedCopy,
   type DeskFile,
   type ExtraDraft,
 } from "@/lib/desk-file";
@@ -46,6 +47,7 @@ type DeskApi = {
   addName: (draft: Omit<ExtraDraft, "slug"> & { slug?: string }) => string | null;
   kill: (slug: string) => void;
   restore: (slug: string) => void;
+  restoreSeedCopy: (slug: string) => void;
   addWindow: (ev: DropEvent) => void;
   removeWindow: (index: number) => void;
   addPrint: (print: Print) => void;
@@ -53,6 +55,7 @@ type DeskApi = {
   pullRemote: () => Promise<boolean>;
   importFile: (raw: unknown) => boolean;
   exportFile: () => DeskFile;
+  save: () => void;
 };
 
 const DeskContext = createContext<DeskApi | null>(null);
@@ -87,7 +90,7 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { file: stored, hadLocal } = loadStored();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage hydrate
-    setFile(stored);
+    setFile(restoreWipedSeedCopy(stored));
     setReady(true);
 
     void (async () => {
@@ -229,6 +232,18 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
     }));
   }, [mutate]);
 
+  const restoreSeedCopy = useCallback((slug: string) => {
+    mutate((current) => {
+      const patch = { ...(current.patches[slug] ?? {}) };
+      delete patch.thesis;
+      delete patch.strategy;
+      const patches = { ...current.patches };
+      if (Object.keys(patch).length) patches[slug] = patch;
+      else delete patches[slug];
+      return { ...current, patches };
+    });
+  }, [mutate]);
+
   const addWindow = useCallback((ev: DropEvent) => {
     mutate((current) => ({
       ...current,
@@ -276,6 +291,10 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
 
   const exportFile = useCallback(() => file, [file]);
 
+  const save = useCallback(() => {
+    setFile((current) => touch(current));
+  }, []);
+
   const get = useCallback(
     (slug: string) => resolved.all.find((c) => c.slug === slug),
     [resolved.all],
@@ -304,6 +323,7 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       addName,
       kill,
       restore,
+      restoreSeedCopy,
       addWindow,
       removeWindow,
       addPrint,
@@ -311,6 +331,7 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       pullRemote,
       importFile,
       exportFile,
+      save,
     }),
     [
       addName,
@@ -331,7 +352,9 @@ export function DeskBookProvider({ children }: { children: React.ReactNode }) {
       removeWindow,
       resolved,
       restore,
+      restoreSeedCopy,
       revoke,
+      save,
       setStamp,
       unfollow,
     ],

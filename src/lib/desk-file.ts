@@ -181,6 +181,31 @@ export type ResolvedDesk = {
   prints: Print[];
 };
 
+const SEED_COPY_KEYS = ["thesis", "strategy"] as const;
+
+/** Empty write-up patches from an accidental wipe should not hide the original. */
+export function restoreWipedSeedCopy(file: DeskFile): DeskFile {
+  let changed = false;
+  const patches: Record<string, CollabPatch> = {};
+  for (const [slug, patch] of Object.entries(file.patches)) {
+    const seed = seedCollabs.find((c) => c.slug === slug);
+    if (!seed) {
+      patches[slug] = patch;
+      continue;
+    }
+    const next: CollabPatch = { ...patch };
+    for (const key of SEED_COPY_KEYS) {
+      const val = next[key];
+      if (typeof val === "string" && val.trim() === "" && seed[key].trim()) {
+        delete next[key];
+        changed = true;
+      }
+    }
+    patches[slug] = next;
+  }
+  return changed ? { ...file, patches } : file;
+}
+
 export function resolveDesk(file: DeskFile): ResolvedDesk {
   const bySlug = new Map<string, Collab>();
   for (const c of seedCollabs) bySlug.set(c.slug, c);
